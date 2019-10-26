@@ -1,0 +1,23 @@
+{
+  "name": "ingredofit-aws-lambda-function",
+  "version": "1.0.0",
+  "description": "Test to enable CORS on aws lambda fucntion",
+  "main": "handler.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/badgamerbad/aws-lambda-nodejs-cors.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/badgamerbad/aws-lambda-nodejs-cors/issues"
+  },
+  "homepage": "https://github.com/badgamerbad/aws-lambda-nodejs-cors#readme",
+  "dependencies": {
+    "request": "^2.88.0"
+  }
+}
