@@ -9,3 +9,4 @@ functions:
      - http:
          path: auth/accessToken/generate
          method: post
+         cors: true
