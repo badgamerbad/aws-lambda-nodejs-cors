@@ -3,8 +3,8 @@ provider:
   name: aws
   runtime: nodejs10.x
 functions:
-  githutAccessTokenGenerator:
-    handler: handler.githutAccessTokenGenerator
+  githubAccessTokenGenerator:
+    handler: handler.githubAccessTokenGenerator
     events:
      - http:
          path: auth/accessToken/generate

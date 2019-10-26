@@ -8,7 +8,7 @@ const config = {
   allowedOrigins: ['http://localhost:8000/', 'https://localhost:8000/'],
 };
 
-const githutAccessTokenGenerator = function (event, context, callback) {
+const githubAccessTokenGenerator = function (event, context, callback) {
   // Retrieve the request, more details about the event variable later
   const headers = event.headers;
   const body = JSON.parse(event.body);
@@ -67,4 +67,4 @@ const githutAccessTokenGenerator = function (event, context, callback) {
   });
 };
 
-module.exports = { githutAccessTokenGenerator: githutAccessTokenGenerator } 
+module.exports = { githubAccessTokenGenerator: githubAccessTokenGenerator } 
