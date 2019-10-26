@@ -5,14 +5,14 @@ const config = {
   clientId: 'Iv1.c6778b1c26a766bd',
   clientSecret: '24ee9c042bafc74699ff49270b0403da31e7ce30',
   redirectUri: 'http://localhost:8000/',
-  allowedOrigins: ['http://localhost:8000/', 'https://localhost:8000/'],
+  allowedOrigins: ['http://localhost:8000', 'https://localhost:8000'],
 };
 
 const githubAccessTokenGenerator = function (event, context, callback) {
   // Retrieve the request, more details about the event variable later
   const headers = event.headers;
   const body = JSON.parse(event.body);
-  const origin = headers.Origin;
+  const origin = headers.origin || headers.Origin;
 
   // Check for malicious request
   if (!config.allowedOrigins.includes(origin)) {
@@ -23,7 +23,7 @@ const githubAccessTokenGenerator = function (event, context, callback) {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Credentials': true,
       },
-      "body": JSON.stringify(body),
+      "body": JSON.stringify({body, headers}),
       "isBase64Encoded": false
     });
   }
