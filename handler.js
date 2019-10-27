@@ -1,5 +1,7 @@
 'use strict';
-const request = require('request');
+const request = require("request");
+const firebase = require("firebase");
+require("firebase/database");
 
 const config = {
   clientId: 'Iv1.c6778b1c26a766bd',
@@ -65,6 +67,33 @@ const githubAccessTokenGenerator = function (event, context, callback) {
       }
     );
   });
+
+  // fetch user details
+  request(url, options, function (err, response) {
+
+  });
+
+  // after fetching the user details
+  // Set the configuration for your app
+  // TODO: Replace with your project's config object
+  const config = {
+    apiKey: "apiKey",
+    authDomain: "projectId.firebaseapp.com",
+    databaseURL: "https://databaseName.firebaseio.com",
+    storageBucket: "bucket.appspot.com"
+  };
+  firebase.initializeApp(config);
+
+  // Get a reference to the database service
+  const database = firebase.database();
+  database.ref('users/' + userId).set({
+    username: name,
+    email: email,
+    profile_picture : imageUrl
+  });
+
 };
 
-module.exports = { githubAccessTokenGenerator: githubAccessTokenGenerator } 
+module.exports = { 
+    githubAccessTokenGenerator: githubAccessTokenGenerator,
+} 
