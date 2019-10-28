@@ -1,99 +1,128 @@
-'use strict';
-const request = require("request");
+"use strict";
+const util = require("util");
+
+let request = require("request");
+request = util.promisify(request);
+
 const firebase = require("firebase");
 require("firebase/database");
 
-const config = {
-  clientId: 'Iv1.c6778b1c26a766bd',
-  clientSecret: '24ee9c042bafc74699ff49270b0403da31e7ce30',
-  redirectUri: 'http://localhost:8000/',
-  allowedOrigins: ['http://localhost:8000', 'https://localhost:8000'],
+const githubOauthConfig = {
+  clientId: "Iv1.c6778b1c26a766bd",
+  clientSecret: "24ee9c042bafc74699ff49270b0403da31e7ce30",
+  redirectUri: "http://localhost:8000/",
+  allowedOrigins: ["http://localhost:8000", "https://localhost:8000"],
+  githubGetAccessTokenUrl: "https://github.com/login/oauth/access_token",
+  githubGetUserDataUrl: "https://api.github.com/user",
 };
 
-const githubAccessTokenGenerator = function (event, context, callback) {
+// Set the configuration for your app
+const fireBaseConfig = {
+  apiKey: "AIzaSyCT1vDFzdF8fv1aYEhU_pMH0HQNqGNFNls",
+  authDomain: "ingredofit.firebaseapp.com",
+  databaseURL: "https://ingredofit.firebaseio.com",
+  storageBucket: "ingredofit.appspot.com",
+};
+firebase.initializeApp(fireBaseConfig);
+
+// initialize the firebase database
+const firebaseDatabase = firebase.database();
+
+module.exports.githubAccessTokenGenerator = async (event, context, awsLambdaCallback) => {
   // Retrieve the request, more details about the event variable later
   const headers = event.headers;
   const body = JSON.parse(event.body);
   const origin = headers.origin || headers.Origin;
 
   // Check for malicious request
-  if (!config.allowedOrigins.includes(origin)) {
+  if (!githubOauthConfig.allowedOrigins.includes(origin)) {
     body.message = `${origin} is not an allowed origin.`;
-    callback(null, {
+    return awsLambdaCallback(null, {
       "statusCode": 500,
       "headers": {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Credentials': true,
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
       },
       "body": JSON.stringify({body, headers}),
       "isBase64Encoded": false
     });
   }
 
-  let url = 'https://github.com/login/oauth/access_token';
-  let options = {
+  const githubGetAccessTokenOptions = {
     headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      "Content-Type": "application/json",
+      "Accept": "application/json",
     },
     body: JSON.stringify({
       code: body.code,
-      client_id: config.clientId,
-      client_secret: config.clientSecret,
-      redirect_uri: config.redirectUri,
+      client_id: githubOauthConfig.clientId,
+      client_secret: githubOauthConfig.clientSecret,
+      redirect_uri: githubOauthConfig.redirectUri,
       state: body.state,
     }),
   };
 
+  let statusCode, responseData;
   // Request to GitHub with the given code
-  request(url, options, function (err, response) {
-    let responseData = response.body;
-    let statusCode = 200;
-    if (err) {
-      responseData = err;
+  const getGithubAccessTokenResponse = await request(githubOauthConfig.githubGetAccessTokenUrl, githubGetAccessTokenOptions);
+  // if its a get access token error, like the network failure, authentication error
+  if(getGithubAccessTokenResponse.error) {
+    statusCode = 500;
+    responseData = getGithubAccessTokenResponse;
+  }
+  else {
+    let parseGetGithubAccessTokenResponseBody = JSON.parse(getGithubAccessTokenResponse.body);
+    // if github api throws errro, example a bad_verification_code error
+    if(parseGetGithubAccessTokenResponseBody.error) {
       statusCode = 500;
+      responseData = { getGithubAccessTokenResponse };
     }
-
-    callback(
-      null,
-      {
-        "statusCode": statusCode,
+    // else fetch the github user details
+    else {
+      const fetchGithubUsersOptions = {
         "headers": {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Credentials': true,
-        },
-        "body": JSON.stringify(responseData),
-        "isBase64Encoded": false
+          "Authorization": `token ${parseGetGithubAccessTokenResponseBody.access_token}`,
+          "User-Agent": "PostmanRuntime/7.19.0",
+        }
       }
-    );
-  });
+      const fetchGithubUsersData = await request(githubOauthConfig.githubGetUserDataUrl, fetchGithubUsersOptions);
+      // handle the get github user data error
+      if (fetchGithubUsersData.statusCode !== 200) {
+        statusCode = 500 || fetchGithubUsersData.statusCode;
+        responseData = { getGithubAccessTokenResponse, fetchGithubUsersData };
+      }
+      else {
+        try {
+          let parseFetchGithubUsersDataBody = JSON.parse(fetchGithubUsersData.body);
+          const firebaseDatabaseRef = await firebaseDatabase
+            .ref(`/users/${parseFetchGithubUsersDataBody.id}`)
+            .set(parseGetGithubAccessTokenResponseBody.access_token);
 
-  // fetch user details
-  request(url, options, function (err, response) {
+          // its success, if promise is resolved to undefined
+          if (!firebaseDatabaseRef) {
+            statusCode = 200;
+            responseData = parseGetGithubAccessTokenResponseBody;
+            responseData.userData = parseFetchGithubUsersDataBody;
+          }
+        }
+        catch (error) {
+          statusCode = 500;
+          responseData = error;
+        }
+      }
+    }
+  }
 
-  });
-
-  // after fetching the user details
-  // Set the configuration for your app
-  // TODO: Replace with your project's config object
-  const config = {
-    apiKey: "apiKey",
-    authDomain: "projectId.firebaseapp.com",
-    databaseURL: "https://databaseName.firebaseio.com",
-    storageBucket: "bucket.appspot.com"
-  };
-  firebase.initializeApp(config);
-
-  // Get a reference to the database service
-  const database = firebase.database();
-  database.ref('users/' + userId).set({
-    username: name,
-    email: email,
-    profile_picture : imageUrl
-  });
-
+  return awsLambdaCallback(
+    null,
+    {
+      "statusCode": statusCode,
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+      },
+      "body": JSON.stringify(responseData),
+      "isBase64Encoded": false
+    }
+  );
 };
-
-module.exports = { 
-    githubAccessTokenGenerator: githubAccessTokenGenerator,
-} 

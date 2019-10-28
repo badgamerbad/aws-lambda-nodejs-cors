@@ -4,7 +4,9 @@
   "description": "Test to enable CORS on aws lambda fucntion",
   "main": "handler.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "npm rebuild grpc --target=10.15.0 --target_arch=x64 --target_platform=linux --target_libc=glibc",
+    "debug-github-access-token-generator": "node --inspect-brk=9229 ./node_modules/serverless/bin/serverless.js invoke local -f githubAccessTokenGenerator --p ./eventMock.json"
   },
   "repository": {
     "type": "git",
@@ -20,5 +22,8 @@
   "dependencies": {
     "firebase": "^7.2.2",
     "request": "^2.88.0"
+  },
+  "devDependencies": {
+    "serverless": "^1.55.1"
   }
 }
