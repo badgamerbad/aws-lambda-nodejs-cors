@@ -2,9 +2,20 @@ service: ingredofit-aws-lambda-function
 provider:
   name: aws
   runtime: nodejs10.x
+  stage: dev
+package:
+  exclude:
+    - .vscode/
+    - client/
+    - mocks/
+layers:
+  nodeModules:
+    path: node_modules
 functions:
   githubAccessTokenGenerator:
-    handler: handler.githubAccessTokenGenerator
+    handler: api/handler.githubAccessTokenGenerator
+    layers:
+      - {Ref: NodeModulesLambdaLayer}
     events:
      - http:
          path: auth/accessToken/generate

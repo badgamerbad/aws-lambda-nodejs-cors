@@ -15,7 +15,7 @@
                 "-f",
                 "githubAccessTokenGenerator",
                 "-p",
-                "./eventMock.json"
+                "./mocks/eventMock.json"
             ]
         }
     ]
