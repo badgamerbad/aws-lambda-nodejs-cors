@@ -3,19 +3,23 @@ provider:
   name: aws
   runtime: nodejs10.x
   stage: dev
+  environment:
+    NODE_PATH: "./:/opt/node_modules"
 package:
   exclude:
-    - .vscode/
-    - client/
-    - mocks/
+    - .vscode/**
+    - firebaseNodeModules/**
+    - mocks/**
+    - client/**
+    - lib/**
 layers:
-  nodeModules:
-    path: node_modules
+  firebaseNodeModules:
+    path: firebaseNodeModules
 functions:
   githubAccessTokenGenerator:
     handler: api/handler.githubAccessTokenGenerator
     layers:
-      - {Ref: NodeModulesLambdaLayer}
+      - {Ref: FirebaseNodeModulesLambdaLayer}
     events:
      - http:
          path: auth/accessToken/generate

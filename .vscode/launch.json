@@ -8,7 +8,7 @@
             "type": "node",
             "request": "launch",
             "name": "Launch debug-github-access-token-generator",
-            "program": "${workspaceRoot}/node_modules/serverless/bin/serverless.js",
+            "program": "${workspaceRoot}/api/node_modules/serverless/bin/serverless.js",
             "args": [
                 "invoke",
                 "local",
