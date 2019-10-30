@@ -1,4 +1,4 @@
-service: ingredofit-aws-lambda-function
+service: ingredofit
 provider:
   name: aws
   runtime: nodejs10.x
