@@ -1,10 +1,25 @@
-service: ingredofit-aws-lambda-function
+service: ingredofit
 provider:
   name: aws
   runtime: nodejs10.x
+  stage: dev
+  environment:
+    NODE_PATH: "./:/opt/node_modules"
+package:
+  exclude:
+    - .vscode/**
+    - firebaseNodeModules/**
+    - mocks/**
+    - client/**
+    - lib/**
+layers:
+  firebaseNodeModules:
+    path: firebaseNodeModules
 functions:
   githubAccessTokenGenerator:
-    handler: handler.githubAccessTokenGenerator
+    handler: api/handler.githubAccessTokenGenerator
+    layers:
+      - {Ref: FirebaseNodeModulesLambdaLayer}
     events:
      - http:
          path: auth/accessToken/generate
