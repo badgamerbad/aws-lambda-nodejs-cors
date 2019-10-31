@@ -8,27 +8,27 @@ const firebase = require("firebase");
 require("firebase/database");
 
 const githubOauthConfig = {
-  clientId: "Iv1.c6778b1c26a766bd",
-  clientSecret: "24ee9c042bafc74699ff49270b0403da31e7ce30",
-  redirectUri: "http://localhost:8000/",
-  allowedOrigins: ["http://localhost:8000", "https://localhost:8000"],
+  clientId: process.env.GITHUB_CLIENT_ID,
+  clientSecret: process.env.GITHUB_CLIENT_SECRET,
+  redirectUri: `http://${process.env.APP_DOMAIN}/`,
+  allowedOrigins: [`http://${process.env.APP_DOMAIN}`, `https://${process.env.APP_DOMAIN}`],
   githubGetAccessTokenUrl: "https://github.com/login/oauth/access_token",
   githubGetUserDataUrl: "https://api.github.com/user",
 };
 
 // Set the configuration for your app
 const fireBaseConfig = {
-  apiKey: "AIzaSyCT1vDFzdF8fv1aYEhU_pMH0HQNqGNFNls",
-  authDomain: "ingredofit.firebaseapp.com",
-  databaseURL: "https://ingredofit.firebaseio.com",
-  storageBucket: "ingredofit.appspot.com",
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  databaseURL: process.env.FIREBASE_DB_URL,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
 };
 firebase.initializeApp(fireBaseConfig);
 
 // initialize the firebase database
 const firebaseDatabase = firebase.database();
 
-module.exports.githubAccessTokenGenerator = async (event, context, awsLambdaCallback) => {
+exports.githubAccessTokenGenerator = async (event, context) => {
   // Retrieve the request, more details about the event variable later
   const headers = event.headers;
   const body = JSON.parse(event.body);
@@ -37,7 +37,7 @@ module.exports.githubAccessTokenGenerator = async (event, context, awsLambdaCall
   // Check for malicious request
   if (!githubOauthConfig.allowedOrigins.includes(origin)) {
     body.message = `${origin} is not an allowed origin.`;
-    awsLambdaCallback(null, {
+    return {
       "statusCode": 500,
       "headers": {
         "Access-Control-Allow-Origin": "*",
@@ -45,7 +45,7 @@ module.exports.githubAccessTokenGenerator = async (event, context, awsLambdaCall
       },
       "body": JSON.stringify({body, headers}),
       "isBase64Encoded": false
-    });
+    };
   }
 
   const githubGetAccessTokenOptions = {
@@ -84,7 +84,7 @@ module.exports.githubAccessTokenGenerator = async (event, context, awsLambdaCall
           "Authorization": `token ${parseGetGithubAccessTokenResponseBody.access_token}`,
           "User-Agent": "PostmanRuntime/7.19.0",
         }
-      }
+      };
       const fetchGithubUsersData = await request(githubOauthConfig.githubGetUserDataUrl, fetchGithubUsersOptions);
       // handle the get github user data error
       if (fetchGithubUsersData.statusCode !== 200) {
@@ -113,16 +113,13 @@ module.exports.githubAccessTokenGenerator = async (event, context, awsLambdaCall
     }
   }
   
-  awsLambdaCallback(
-    null,
-    {
-      "statusCode": statusCode,
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      "body": JSON.stringify(responseData),
-      "isBase64Encoded": false
-    }
-  );
+  return {
+    "statusCode": statusCode,
+    "headers": {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Credentials": true,
+    },
+    "body": JSON.stringify(responseData),
+    "isBase64Encoded": false
+  };
 };
