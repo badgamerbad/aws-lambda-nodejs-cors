@@ -7,6 +7,8 @@ request = util.promisify(request);
 const firebase = require("firebase");
 require("firebase/database");
 
+const cryptOperation = require("./cryptOperation");
+
 const githubOauthConfig = {
   clientId: process.env.GITHUB_CLIENT_ID,
   clientSecret: process.env.GITHUB_CLIENT_SECRET,
@@ -40,7 +42,7 @@ exports.githubAccessTokenGenerator = async (event, context) => {
     return {
       "statusCode": 500,
       "headers": {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": `http://${process.env.APP_DOMAIN}`,
         "Access-Control-Allow-Credentials": true,
       },
       "body": JSON.stringify({body, headers}),
@@ -62,7 +64,11 @@ exports.githubAccessTokenGenerator = async (event, context) => {
     }),
   };
 
-  let statusCode, responseData;
+  let statusCode, responseData, responseHeaders;
+  responseHeaders = {
+    "Access-Control-Allow-Origin": `http://${process.env.APP_DOMAIN}`,
+    "Access-Control-Allow-Credentials": true,
+  };
   // Request to GitHub with the given code
   const getGithubAccessTokenResponse = await request(githubOauthConfig.githubGetAccessTokenUrl, githubGetAccessTokenOptions);
   // if its a get access token error, like the network failure, authentication error
@@ -101,8 +107,15 @@ exports.githubAccessTokenGenerator = async (event, context) => {
           // its success, if promise is resolved to undefined
           if (!firebaseDatabaseRef) {
             statusCode = 200;
-            responseData = parseGetGithubAccessTokenResponseBody;
-            responseData.userData = parseFetchGithubUsersDataBody;
+            responseData = parseFetchGithubUsersDataBody;
+
+            // generate stateless csrf token (Encryption based Token Pattern)
+            let csrfToken = cryptOperation.encrypt(parseGetGithubAccessTokenResponseBody.access_token);
+
+            let now = new Date();
+            now.setHours(now.getHours() + 1);
+            let cookieExpires = now.toUTCString();
+            responseHeaders["Set-Cookie"] = `csrf_token=${csrfToken}; Max-Age=86400; Path=/; Expires=${cookieExpires}; HttpOnly`;
           }
         }
         catch (error) {
@@ -115,11 +128,16 @@ exports.githubAccessTokenGenerator = async (event, context) => {
   
   return {
     "statusCode": statusCode,
-    "headers": {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Credentials": true,
-    },
+    "headers": responseHeaders,
     "body": JSON.stringify(responseData),
     "isBase64Encoded": false
   };
 };
+
+exports.uploadImageToFirebaseStorage = async (event, context) => {
+  // check the csrf token
+
+  // if okay then allow upload 
+
+  // else retuan an error
+}
