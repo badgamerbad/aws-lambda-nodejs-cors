@@ -1,29 +1,44 @@
 "use strict";
-const util = require("util");
+const _util = require("util");
 
 // Nodejs encryption with CTR
-const crypto = require('crypto');
+const _crypto = require('crypto');
 const algorithm = 'aes-256-gcm';
-const iv = crypto.randomBytes(16);
 
-crypto.randomBytes = util.promisify(crypto.randomBytes);
+_crypto.randomBytes = _util.promisify(_crypto.randomBytes);
 
 const encrypt = async githubAccessToken => {
-    const buffer = await crypto.randomBytes(48);
-    const token = buffer.toString('hex');
-    console.log("token-------------------------------------------")
-    console.log(token)
-    let cipher = crypto.createCipheriv(algorithm, Buffer.from(githubAccessToken.substr(0, 32)), iv);
-    let encrypted = cipher.update(token);
+    const randomBuffer = await _crypto.randomBytes(48);
+    const randomToken = randomBuffer.toString('hex');
+
+    console.log("randomToken -------------------------------------------")
+    console.log(randomToken)
+
+    // random initialization vector
+    const iv = _crypto.randomBytes(16);
+
+    // random salt
+    const salt = _crypto.randomBytes(64);
+
+    // derive encryption key: 32 byte key length
+    // in assumption the masterkey is a cryptographic and NOT a password there is no need for
+    // a large number of iterations. It may can replaced by HKDF
+    // the value of 2145 is randomly chosen!
+    const key = _crypto.pbkdf2Sync(githubAccessToken, salt, 2145, 32, 'sha512');
+
+    // AES 256 GCM Mode
+    const cipher = _crypto.createCipheriv(algorithm, key, iv);
+
+    // encrypt the given text
+    const encrypted = cipher.update(randomToken);
     encrypted = Buffer.concat([encrypted, cipher.final()]);
     return encrypted.toString('hex');
 }
    
 const decrypt = async (token, githubAccessToken) => {
     let encryptedText = Buffer.from(token, 'hex');
-    let decipher = crypto.createDecipheriv(algorithm, Buffer.from(githubAccessToken.substr(0, 32)), iv);
-    let decrypted = decipher.update(encryptedText);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    let decipher = _crypto.createDecipheriv(algorithm, Buffer.from(githubAccessToken.substr(0, 32)), iv);
+    let decrypted = decipher.update(encryptedText) + decipher.final();
     return decrypted.toString();
 }
 
