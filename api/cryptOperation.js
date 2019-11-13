@@ -30,16 +30,36 @@ const encrypt = async githubAccessToken => {
     const cipher = _crypto.createCipheriv(algorithm, key, iv);
 
     // encrypt the given text
-    const encrypted = cipher.update(randomToken);
-    encrypted = Buffer.concat([encrypted, cipher.final()]);
-    return encrypted.toString('hex');
+    const encrypted = Buffer.concat([cipher.update(randomToken, "utf8"), cipher.final()]);
+    
+    // extract the auth tag
+    const tag = cipher.getAuthTag();
+
+    // generate output
+    return Buffer.concat([salt, iv, tag, encrypted]).toString('base64');
 }
    
 const decrypt = async (token, githubAccessToken) => {
-    let encryptedText = Buffer.from(token, 'hex');
-    let decipher = _crypto.createDecipheriv(algorithm, Buffer.from(githubAccessToken.substr(0, 32)), iv);
-    let decrypted = decipher.update(encryptedText) + decipher.final();
-    return decrypted.toString();
+    // base64 decoding
+    const bData = Buffer.from(token, 'base64');
+
+    // convert data to buffers
+    const salt = bData.slice(0, 64);
+    const iv = bData.slice(64, 80);
+    const tag = bData.slice(80, 96);
+    const text = bData.slice(96);
+
+    // derive key using; 32 byte key length
+    const key = _crypto.pbkdf2Sync(githubAccessToken, salt , 2145, 32, 'sha512');
+
+    // AES 256 GCM Mode
+    const decipher = _crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+
+    // encrypt the given text
+    const decrypted = decipher.update(text, 'binary', 'utf8') + decipher.final('utf8');
+
+    return decrypted;
 }
 
 let encPromise = encrypt("57645173062d8e8faed8bc7a4b487c146989a8d5");
