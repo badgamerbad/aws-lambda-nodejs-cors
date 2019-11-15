@@ -15,10 +15,10 @@ const encrypt = async githubAccessToken => {
     console.log(randomToken)
 
     // random initialization vector
-    const iv = _crypto.randomBytes(16);
+    const iv = await _crypto.randomBytes(16);
 
     // random salt
-    const salt = _crypto.randomBytes(64);
+    const salt = await _crypto.randomBytes(64);
 
     // derive encryption key: 32 byte key length
     // in assumption the masterkey is a cryptographic and NOT a password there is no need for

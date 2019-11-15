@@ -4,8 +4,9 @@ const util = require("util");
 let request = require("request");
 request = util.promisify(request);
 
-const firebase = require("firebase");
-require("firebase/database");
+// Imports the Google Cloud client library
+const { Storage } = require("@google-cloud/storage");
+const { Datastore } = require('@google-cloud/datastore');
 
 const cryptOperation = require("./cryptOperation");
 
@@ -25,10 +26,6 @@ const fireBaseConfig = {
   databaseURL: process.env.FIREBASE_DB_URL,
   storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
 };
-firebase.initializeApp(fireBaseConfig);
-
-// initialize the firebase database
-const firebaseDatabase = firebase.database();
 
 exports.githubAccessTokenGenerator = async (event, context) => {
   // Retrieve the request, more details about the event variable later
@@ -134,10 +131,25 @@ exports.githubAccessTokenGenerator = async (event, context) => {
   };
 };
 
-exports.uploadImageToFirebaseStorage = async (event, context) => {
+exports.getSignedUrlForStorage = async (event, context) => {
   // check the csrf token
 
   // if okay then allow upload 
 
   // else retuan an error
+
+  const options = {
+    version: 'v4',
+    action: 'write',
+    expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+    contentType: 'application/octet-stream',
+  };
+  
+  // Get a v4 signed URL for uploading file
+  const [url] = await Storage
+    .bucket(bucketName)
+    .file(filename)
+    .getSignedUrl(options);
+
+  console.log(url);
 }
