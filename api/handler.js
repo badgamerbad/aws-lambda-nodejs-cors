@@ -6,7 +6,15 @@ request = util.promisify(request);
 
 // Imports the Google Cloud client library
 const { Storage } = require("@google-cloud/storage");
-const { Datastore } = require('@google-cloud/datastore');
+const Firestore = require('@google-cloud/firestore');
+
+// Creates a client
+const storage = new Storage();
+
+const db = new Firestore({
+  projectId: process.env.PROJECT_ID,
+  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+});
 
 const cryptOperation = require("./cryptOperation");
 
@@ -138,6 +146,19 @@ exports.getSignedUrlForStorage = async (event, context) => {
 
   // else retuan an error
 
+  let docRef = db.collection('users').doc('alovelace');
+
+  let setAda = docRef.set({
+    first: 'Ada',
+    last: 'Lovelace',
+    born: 1815
+  });
+
+  console.log(setAda);
+
+  const bucketName = fireBaseConfig.storageBucket;
+  const filename = 'file.txt';
+
   const options = {
     version: 'v4',
     action: 'write',
@@ -146,7 +167,7 @@ exports.getSignedUrlForStorage = async (event, context) => {
   };
   
   // Get a v4 signed URL for uploading file
-  const [url] = await Storage
+  const [url] = await storage
     .bucket(bucketName)
     .file(filename)
     .getSignedUrl(options);
