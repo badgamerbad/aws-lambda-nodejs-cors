@@ -162,7 +162,7 @@ exports.getSignedUrlForStorage = async (event, context) => {
   const options = {
     version: 'v4',
     action: 'write',
-    expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+    expires: Date.now() + 60 * 60 * 8 * 1000, // 8 hours
     contentType: 'application/octet-stream',
   };
   
