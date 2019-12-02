@@ -23,8 +23,17 @@ functions:
       - {Ref: PublicModulesLambdaLayer}
     events:
      - http:
-         path: auth/accessToken/generate
+         path: auth/accessToken
          method: post
+         cors: true
+  getGithubUserData:
+    handler: api/handler.getGithubUserData
+    layers:
+      - {Ref: PublicModulesLambdaLayer}
+    events:
+     - http:
+         path: users/signedUrl
+         method: get
          cors: true
   getSignedUrlForStorage:
     handler: api/handler.getSignedUrlForStorage

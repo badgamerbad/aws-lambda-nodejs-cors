@@ -113,7 +113,7 @@ exports.getSignedUrlForStorage = async (event, context) => {
   let statusCode, responseData;
   if(request.isValidSession) {
     const bucketName = process.env.BUCKET_NAME;
-    const filename = `${uuid()}.${request.body.fileType.replace(/image\//g, "")}`;
+    const filename = `${uuid()}.${request.query.fileType.replace(/image\//g, "")}`;
 
     const gcpSignedUrlOptions = {
       version: 'v4',

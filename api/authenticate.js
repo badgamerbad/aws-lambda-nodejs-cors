@@ -8,6 +8,7 @@ const authenticate = {
 		const headers = event.headers;
 		const body = JSON.parse(event.body);
 		const origin = headers.origin || headers.Origin;
+		const query = event.query ? JSON.parse(event.body) : {};
 		
 		let statusCode = 403, isValidSession = false;
 
@@ -27,7 +28,7 @@ const authenticate = {
 		}
 
 		return {
-			isValidSession, statusCode, body, headers
+			isValidSession, statusCode, body, headers, query
 		}
 	},
 	generateHeaders: () => {
