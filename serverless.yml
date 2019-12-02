@@ -17,23 +17,14 @@ layers:
   publicModules:
     path: publicModules
 functions:
-  githubAccessTokenGenerator:
-    handler: api/handler.githubAccessTokenGenerator
+  githubUserLogin:
+    handler: api/handler.githubUserLogin
     layers:
       - {Ref: PublicModulesLambdaLayer}
     events:
      - http:
-         path: auth/accessToken
+         path: user/login
          method: post
-         cors: true
-  getGithubUserData:
-    handler: api/handler.getGithubUserData
-    layers:
-      - {Ref: PublicModulesLambdaLayer}
-    events:
-     - http:
-         path: users/signedUrl
-         method: get
          cors: true
   getSignedUrlForStorage:
     handler: api/handler.getSignedUrlForStorage

@@ -26,9 +26,9 @@ const githubOauthConfig = {
   githubGetUserDataUrl: "https://api.github.com/user",
 };
 
-exports.githubAccessTokenGenerator = async (event, context) => {
+exports.githubUserLogin = async (event, context) => {
   const request = authenticate.checkIncomingRequest(event);
-  let statusCode, responseData;
+  let statusCode = 500, responseData;
   if(request.isValidSession) {
     const githubGetAccessTokenOptions = {
       headers: {
@@ -45,21 +45,13 @@ exports.githubAccessTokenGenerator = async (event, context) => {
     };
     // Request to GitHub with the given code
     const getGithubAccessTokenResponse = await request(githubOauthConfig.githubGetAccessTokenUrl, githubGetAccessTokenOptions);
-    
-    // if its a get access token error, like the network failure, authentication error
-    if(getGithubAccessTokenResponse.error) {
-      statusCode = 500;
-      responseData = getGithubAccessTokenResponse;
-    }
-    else {
-      let parseGetGithubAccessTokenResponseBody = JSON.parse(getGithubAccessTokenResponse.body);
+    let parseGetGithubAccessTokenResponseBody = JSON.parse(getGithubAccessTokenResponse.body);
+      
+    // if github api throws error, example a bad_verification_code error
+    if(!parseGetGithubAccessTokenResponseBody.error) {
       statusCode = 200;
-      // if github api throws errro, example a bad_verification_code error
-      if(parseGetGithubAccessTokenResponseBody.error) {
-        statusCode = 500;
-      }
-      responseData = getGithubAccessTokenResponse;
     }
+    responseData = getGithubAccessTokenResponse;
   }
   else {
     statusCode = request.statusCode; 
@@ -68,7 +60,7 @@ exports.githubAccessTokenGenerator = async (event, context) => {
   
   return {
     "statusCode": statusCode,
-    "headers": authenticate.generateHeaders(request.headers),
+    "headers": request.responseHeaders,
     "body": JSON.stringify(responseData),
     "isBase64Encoded": false
   };
@@ -102,7 +94,7 @@ exports.getGithubUserData = async (event, context) => {
 
   return {
     "statusCode": statusCode,
-    "headers": authenticate.generateHeaders(request.headers),
+    "headers": request.responseHeaders,
     "body": JSON.stringify(responseData),
     "isBase64Encoded": false
   };
@@ -137,7 +129,7 @@ exports.getSignedUrlForStorage = async (event, context) => {
 
   return {
     "statusCode": statusCode,
-    "headers": authenticate.generateHeaders(request.headers),
+    "headers": request.responseHeaders,
     "body": JSON.stringify(responseData),
     "isBase64Encoded": false
   };
