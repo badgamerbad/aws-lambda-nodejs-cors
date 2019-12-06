@@ -12,7 +12,9 @@ package:
     - mocks/**
     - client/**
     - lib/**
+    - keys
     - README.md
+    - .env.development
 layers:
   publicModules:
     path: publicModules
