@@ -8,7 +8,7 @@ const githubApi = require("./factory/githubFactory");
 const gcpApi = require("./factory/gcpFactory");
 
 exports.githubUserLogin = async (event, context) => {
-  const request = authenticate.normalizeRequest(event);
+  const request = await authenticate.normalizeRequest(event);
   let statusCode = 500, responseData;
   
   // check if error while forming the request
@@ -24,14 +24,14 @@ exports.githubUserLogin = async (event, context) => {
   
   return {
     "statusCode": statusCode,
-    "headers": authenticate.getResponseHeaders(),
+    "headers": await authenticate.getResponseHeaders(),
     "body": JSON.stringify(responseData),
     "isBase64Encoded": false
   };
 };
 
 exports.getSignedUrlForStorage = async (event, context) => {
-  const request = authenticate.normalizeRequest(event);
+  const request = await authenticate.normalizeRequest(event);
   let statusCode = 500, responseData;
 
   // check if error while forming the request
@@ -47,7 +47,7 @@ exports.getSignedUrlForStorage = async (event, context) => {
 
   return {
     "statusCode": statusCode,
-    "headers": authenticate.getResponseHeaders(),
+    "headers": await authenticate.getResponseHeaders(),
     "body": JSON.stringify(responseData),
     "isBase64Encoded": false
   };
