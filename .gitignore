@@ -12,4 +12,4 @@ package-lock.json
 .env.*
 
 # Secret files
-ingredoFit-26179b6739ae.json
+keys/**
