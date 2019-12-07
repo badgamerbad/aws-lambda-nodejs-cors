@@ -2,8 +2,8 @@
 
 const util = require("util");
 
-let request = require("request");
-request = util.promisify(request);
+let _request = require("request");
+_request = util.promisify(_request);
 
 const githubOauthConfig = {
 	clientId: process.env.GITHUB_CLIENT_ID,
@@ -13,8 +13,8 @@ const githubOauthConfig = {
 	githubGetUserDataUrl: "https://api.github.com/user",
 };
 
-const githubApi = {
-	githubGetAccessToken: async request => {
+const githubFactory = {
+	getGithubAccessToken: async requestBody => {
 		let accessToken, error;
 
 		const githubGetAccessTokenOptions = {
@@ -23,54 +23,63 @@ const githubApi = {
 				"Accept": "application/json",
 			},
 			body: JSON.stringify({
-				code: request.code,
+				code: requestBody.code,
 				client_id: githubOauthConfig.clientId,
 				client_secret: githubOauthConfig.clientSecret,
 				redirect_uri: githubOauthConfig.redirectUri,
-				state: request.state,
+				state: requestBody.state,
 			}),
 		};
 		// Request to GitHub with the given code
-		const getGithubAccessTokenResponse = await request(githubOauthConfig.githubGetAccessTokenUrl, githubGetAccessTokenOptions);
-		const parseGetGithubAccessTokenResponseBody = JSON.parse(getGithubAccessTokenResponse.body);
+		const getGithubAccessData = await _request(githubOauthConfig.githubGetAccessTokenUrl, githubGetAccessTokenOptions);
 
-		// if github api throws error, example a bad_verification_code error
-		if (parseGetGithubAccessTokenResponseBody.error) {
+		if(getGithubAccessData.statusCode !== 200) {
 			error = {
-				statusCode: 401,
-				message: parseGetGithubAccessTokenResponseBody.error,
+				statusCode: getGithubAccessData.statusCode,
+				message: getGithubAccessData.statusMessage,
 			}
 		}
 		else {
-			accessToken = parseGetGithubAccessTokenResponseBody.access_token;
-		}
+			const parseGetGithubAccessData = JSON.parse(getGithubAccessData.body);
 
+			// if github api throws error, example a bad_verification_code error
+			if (parseGetGithubAccessData.error) {
+				error = {
+					statusCode: 401,
+					message: parseGetGithubAccessData.error,
+				}
+			}
+			else {
+				accessToken = parseGetGithubAccessData.access_token;
+			}
+		}
+		
 		return { accessToken, error }
 	},
-	getUserDetails: async request => {
+	getUser: async accessToken => {
 		let userData, error;
 
-		const fetchGithubUsersOptions = {
+		const fetchGithubUserOptions = {
       "headers": {
-        "Authorization": `token ${request.access_token}`,
+        "Authorization": `token ${accessToken}`,
         "User-Agent": "PostmanRuntime/7.19.0",
       }
     };
-    const fetchGithubUsersData = await request(githubOauthConfig.githubGetUserDataUrl, fetchGithubUsersOptions);
+    const fetchGithubUserData = await _request(githubOauthConfig.githubGetUserDataUrl, fetchGithubUserOptions);
 		
 		// handle the get github user data error
-    if (fetchGithubUsersData.statusCode !== 200 || fetchGithubUsersData.body.message) {
+    if (fetchGithubUserData.statusCode !== 200) {
 			error = {
-				statusCode: 401,
-				message: fetchGithubUsersData.message,
+				statusCode: fetchGithubUserData.statusCode,
+				message: fetchGithubUserData.statusMessage,
 			}
     }
     else {
-      userData = JSON.parse(fetchGithubUsersData.body);
+      userData = JSON.parse(fetchGithubUserData.body);
 		}
 		
 		return { userData, error }
 	}
 }
 
-module.exports = githubApi;
+module.exports = githubFactory;
