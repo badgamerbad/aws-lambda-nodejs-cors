@@ -39,6 +39,12 @@ const authenticate = {
 				}
 			}
 		}
+		else {
+			error = {
+				statusCode: 403,
+				message: "Invalid Cookie",
+			}
+		}
 
 		return { accessData, error }
 	},
@@ -53,7 +59,7 @@ const authenticate = {
 			// encrypt the github access token and userId
 			// and send it as a csrf token
 			// which acts like a stateless csrf token (Encryption based Token Pattern)
-			const csrfToken = await cryptOperations.encrypt(JSON.stringify({ accessToken: accessToken, userId: userId }));
+			const csrfToken = await cryptOperations.encrypt(JSON.stringify({ accessToken, userId }));
 
 			let now = new Date();
 			now.setHours(now.getHours() + 1);

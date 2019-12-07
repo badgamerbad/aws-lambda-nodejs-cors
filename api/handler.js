@@ -55,14 +55,37 @@ exports.getSignedUrlForStorage = async (event, context) => {
 
   // check if error while forming the request body
   if(requestBody.error) {
-    responseStatusCode = requestBody.error.statusCode; 
+    responseStatusCode = requestBody.error.statusCode;
+    responseHeaders = await authenticate.getResponseHeaders();
     responseBody = JSON.stringify(requestBody);
   }
   // get the access token from CSRF token
   // and after validating it,
   // generate the signed url
   else {
-    
+    let decryptCsrfToken = await authenticate.getAccessDataFromCsrfToken(requestBody.headers);
+    if(decryptCsrfToken.error) {
+      responseStatusCode = decryptCsrfToken.error.statusCode;
+      responseHeaders = await authenticate.getResponseHeaders();
+      responseBody = decryptCsrfToken.error.message;
+    }
+    else {
+      const getSignedUrlParam = {
+        userId: decryptCsrfToken.accessData.userId,
+        fileType: requestBody.body.fileType,
+      }
+      const getSignedUrlData = await gcpFactory.getSignedUrl(getSignedUrlParam);
+      if(getSignedUrlData.error) {
+        responseStatusCode = getSignedUrlData.error.statusCode;
+        responseHeaders = await authenticate.getResponseHeaders();
+        responseBody = getSignedUrlData.error.message;
+      }
+      else {
+        responseStatusCode = 200;
+        responseHeaders = await authenticate.getResponseHeaders(decryptCsrfToken.accessData.accessToken, decryptCsrfToken.accessData.userId);
+        responseBody = getSignedUrlData.url;
+      }
+    }
   }
 
   return {

@@ -11,28 +11,52 @@ const storage = new Storage({
   keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
 });
 
-const gcpApi = {
-	getSignedUrl: async () => {
-		let error;
+const gcpFactory = {
+	/**
+	 * @description generate a signed url to upload the file from client side
+	 * directly from the browser to GCP bucket
+	 * @param object {userId, fileType}
+	 * @returns object {url, error}
+	 */
+	getSignedUrl: async requestBody => {
+		let error, url;
 		
 		const bucketName = process.env.BUCKET_NAME;
-		const filename = `${uuid()}.${request.query.fileType.replace(/image\//g, "")}`;
+		const filename = `${uuid()}_${requestBody.userId}.${requestBody.fileType.replace(/image\//g, "")}`;
 
 		const gcpSignedUrlOptions = {
 			version: 'v4',
 			action: 'write',
 			expires: Date.now() + 8 * 60 * 60 * 1000, // 8 hours
-			contentType: request.body.fileType,
+			contentType: requestBody.fileType,
 		};
 
-		// Get a v4 signed URL for uploading file
-		const [url] = await storage
-			.bucket(bucketName)
-			.file(filename)
-			.getSignedUrl(gcpSignedUrlOptions);
+		try {
+			// Get a v4 signed URL for uploading file
+			const [generatedSignedUrl] = await storage
+				.bucket(bucketName)
+				.file(filename)
+				.getSignedUrl(gcpSignedUrlOptions);
+
+			if (!generatedSignedUrl) {
+				error = {
+					statusCode: 500,
+					message: "Failed generating GCP signed URL",
+				}
+			}
+			else {
+				url = generatedSignedUrl;
+			}
+		}
+		catch(exception) {
+			error = {
+				statusCode: 500,
+				message: exception.message,
+			}
+		}
 
 		return { url, error };
 	}
 }
 
-module.exports = gcpApi;
+module.exports = gcpFactory;
