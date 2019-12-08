@@ -8,20 +8,40 @@ provider:
 package:
   exclude:
     - .vscode/**
-    - firebaseNodeModules/**
+    - publicModules/**
     - mocks/**
     - client/**
     - lib/**
+    - README.md
+    - .env.development
 layers:
-  firebaseNodeModules:
-    path: firebaseNodeModules
+  publicModules:
+    path: publicModules
 functions:
-  githubAccessTokenGenerator:
-    handler: api/handler.githubAccessTokenGenerator
+  githubUserLogin:
+    handler: api/handler.githubUserLogin
     layers:
-      - {Ref: FirebaseNodeModulesLambdaLayer}
+      - {Ref: PublicModulesLambdaLayer}
     events:
      - http:
-         path: auth/accessToken/generate
+         path: user/login
          method: post
+         cors: true
+  getUserData:
+    handler: api/handler.getUserData
+    layers:
+      - {Ref: PublicModulesLambdaLayer}
+    events:
+     - http:
+         path: user/profile
+         method: get
+         cors: true
+  getSignedUrlForStorage:
+    handler: api/handler.getSignedUrlForStorage
+    layers:
+      - {Ref: PublicModulesLambdaLayer}
+    events:
+     - http:
+         path: file/signedUrl
+         method: get
          cors: true

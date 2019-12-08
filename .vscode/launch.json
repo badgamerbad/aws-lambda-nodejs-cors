@@ -15,7 +15,9 @@
                 "-f",
                 "githubAccessTokenGenerator",
                 "-p",
-                "./mocks/eventMock.json"
+                "./mocks/eventMock.json",
+                "-e",
+                "APP_DOMAIN=localhost:8000",
             ]
         }
     ]

@@ -1,125 +1,139 @@
 "use strict";
-const util = require("util");
 
-let request = require("request");
-request = util.promisify(request);
+// authentication utils
+const authenticate = require("./authenticate");
 
-const firebase = require("firebase");
-require("firebase/database");
+// data factories
+const githubFactory = require("./factory/githubFactory");
+const gcpFactory = require("./factory/gcpFactory");
 
-const githubOauthConfig = {
-  clientId: process.env.GITHUB_CLIENT_ID,
-  clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  redirectUri: `http://${process.env.APP_DOMAIN}/`,
-  allowedOrigins: [`http://${process.env.APP_DOMAIN}`, `https://${process.env.APP_DOMAIN}`],
-  githubGetAccessTokenUrl: "https://github.com/login/oauth/access_token",
-  githubGetUserDataUrl: "https://api.github.com/user",
-};
-
-// Set the configuration for your app
-const fireBaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
-  databaseURL: process.env.FIREBASE_DB_URL,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-};
-firebase.initializeApp(fireBaseConfig);
-
-// initialize the firebase database
-const firebaseDatabase = firebase.database();
-
-exports.githubAccessTokenGenerator = async (event, context) => {
-  // Retrieve the request, more details about the event variable later
-  const headers = event.headers;
-  const body = JSON.parse(event.body);
-  const origin = headers.origin || headers.Origin;
-
-  // Check for malicious request
-  if (!githubOauthConfig.allowedOrigins.includes(origin)) {
-    body.message = `${origin} is not an allowed origin.`;
-    return {
-      "statusCode": 500,
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      "body": JSON.stringify({body, headers}),
-      "isBase64Encoded": false
-    };
+exports.githubUserLogin = async (event, context) => {
+  const requestBody = await authenticate.normalizeRequest(event);
+  let responseStatusCode = 500, responseBody, responseHeaders;
+  
+  // check if error while forming the request body
+  if(requestBody.error) {
+    responseStatusCode = requestBody.error.statusCode;
+    responseHeaders = await authenticate.getResponseHeaders();
+    responseBody = JSON.stringify(requestBody);
   }
-
-  const githubGetAccessTokenOptions = {
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json",
-    },
-    body: JSON.stringify({
-      code: body.code,
-      client_id: githubOauthConfig.clientId,
-      client_secret: githubOauthConfig.clientSecret,
-      redirect_uri: githubOauthConfig.redirectUri,
-      state: body.state,
-    }),
-  };
-
-  let statusCode, responseData;
-  // Request to GitHub with the given code
-  const getGithubAccessTokenResponse = await request(githubOauthConfig.githubGetAccessTokenUrl, githubGetAccessTokenOptions);
-  // if its a get access token error, like the network failure, authentication error
-  if(getGithubAccessTokenResponse.error) {
-    statusCode = 500;
-    responseData = getGithubAccessTokenResponse;
-  }
+  // exchange the access code for access token
+  // and fetch the github user details
   else {
-    let parseGetGithubAccessTokenResponseBody = JSON.parse(getGithubAccessTokenResponse.body);
-    // if github api throws errro, example a bad_verification_code error
-    if(parseGetGithubAccessTokenResponseBody.error) {
-      statusCode = 500;
-      responseData = { getGithubAccessTokenResponse };
+    let accessData = await githubFactory.getGithubAccessToken(requestBody.body);
+    if(accessData.error) {
+      responseStatusCode = accessData.error.statusCode;
+      responseHeaders = await authenticate.getResponseHeaders();
+      responseBody = accessData.error.message;
     }
-    // else fetch the github user details
     else {
-      const fetchGithubUsersOptions = {
-        "headers": {
-          "Authorization": `token ${parseGetGithubAccessTokenResponseBody.access_token}`,
-          "User-Agent": "PostmanRuntime/7.19.0",
-        }
-      };
-      const fetchGithubUsersData = await request(githubOauthConfig.githubGetUserDataUrl, fetchGithubUsersOptions);
-      // handle the get github user data error
-      if (fetchGithubUsersData.statusCode !== 200) {
-        statusCode = 500 || fetchGithubUsersData.statusCode;
-        responseData = { getGithubAccessTokenResponse, fetchGithubUsersData };
+      let getUser = await githubFactory.getUser(accessData.accessToken);
+      if(getUser.error) {
+        responseStatusCode = getUser.error.statusCode;
+        responseHeaders = await authenticate.getResponseHeaders();
+        responseBody = getUser.error.message;
       }
       else {
-        try {
-          let parseFetchGithubUsersDataBody = JSON.parse(fetchGithubUsersData.body);
-          const firebaseDatabaseRef = await firebaseDatabase
-            .ref(`/users/${parseFetchGithubUsersDataBody.id}`)
-            .set(parseGetGithubAccessTokenResponseBody.access_token);
-
-          // its success, if promise is resolved to undefined
-          if (!firebaseDatabaseRef) {
-            statusCode = 200;
-            responseData = parseGetGithubAccessTokenResponseBody;
-            responseData.userData = parseFetchGithubUsersDataBody;
-          }
-        }
-        catch (error) {
-          statusCode = 500;
-          responseData = error;
-        }
+        responseStatusCode = 200;
+        responseHeaders = await authenticate.getResponseHeaders(accessData.accessToken, getUser.userData.id);
+        responseBody = JSON.stringify(getUser.userData);
       }
     }
   }
   
   return {
-    "statusCode": statusCode,
-    "headers": {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Credentials": true,
-    },
-    "body": JSON.stringify(responseData),
+    "statusCode": responseStatusCode,
+    "headers": responseHeaders,
+    "body": responseBody,
     "isBase64Encoded": false
   };
 };
+
+exports.getUserData = async (event, context) => {
+  const requestBody = await authenticate.normalizeRequest(event);
+  let responseStatusCode = 500, responseBody, responseHeaders;
+  
+  // check if error while forming the request body
+  if(requestBody.error) {
+    responseStatusCode = requestBody.error.statusCode;
+    responseHeaders = await authenticate.getResponseHeaders();
+    responseBody = JSON.stringify(requestBody);
+  }
+  // decrypt the csrf token and retrieve access token
+  // and fetch the github user details
+  else {
+    let decryptCsrfToken = await authenticate.getAccessDataFromCsrfToken(requestBody.headers);
+    if(decryptCsrfToken.error) {
+      responseStatusCode = decryptCsrfToken.error.statusCode;
+      responseHeaders = await authenticate.getResponseHeaders();
+      responseBody = decryptCsrfToken.error.message;
+    }
+    else {
+      let getUser = await githubFactory.getUser(decryptCsrfToken.accessData.accessToken);
+      if(getUser.error) {
+        responseStatusCode = getUser.error.statusCode;
+        responseHeaders = await authenticate.getResponseHeaders();
+        responseBody = getUser.error.message;
+      }
+      else {
+        responseStatusCode = 200;
+        responseHeaders = await authenticate.getResponseHeaders(decryptCsrfToken.accessData.accessToken, decryptCsrfToken.accessData.userId);
+        responseBody = JSON.stringify(getUser.userData);
+      }
+    }
+  }
+  
+  return {
+    "statusCode": responseStatusCode,
+    "headers": responseHeaders,
+    "body": responseBody,
+    "isBase64Encoded": false
+  };
+};
+
+exports.getSignedUrlForStorage = async (event, context) => {
+  const requestBody = await authenticate.normalizeRequest(event);
+  let responseStatusCode = 500, responseBody, responseHeaders;
+
+  // check if error while forming the request body
+  if(requestBody.error) {
+    responseStatusCode = requestBody.error.statusCode;
+    responseHeaders = await authenticate.getResponseHeaders();
+    responseBody = JSON.stringify(requestBody);
+  }
+  // get the access token from CSRF token
+  // and after validating it,
+  // generate the signed url
+  else {
+    let decryptCsrfToken = await authenticate.getAccessDataFromCsrfToken(requestBody.headers);
+    if(decryptCsrfToken.error) {
+      responseStatusCode = decryptCsrfToken.error.statusCode;
+      responseHeaders = await authenticate.getResponseHeaders();
+      responseBody = decryptCsrfToken.error.message;
+    }
+    else {
+      const getSignedUrlParam = {
+        userId: decryptCsrfToken.accessData.userId,
+        fileType: requestBody.body.fileType,
+      }
+      const getSignedUrlData = await gcpFactory.getSignedUrl(getSignedUrlParam);
+      if(getSignedUrlData.error) {
+        responseStatusCode = getSignedUrlData.error.statusCode;
+        responseHeaders = await authenticate.getResponseHeaders();
+        responseBody = getSignedUrlData.error.message;
+      }
+      else {
+        responseStatusCode = 200;
+        responseHeaders = await authenticate.getResponseHeaders(decryptCsrfToken.accessData.accessToken, decryptCsrfToken.accessData.userId);
+        responseBody = getSignedUrlData.url;
+      }
+    }
+  }
+
+  return {
+    "statusCode": responseStatusCode,
+    "headers": responseHeaders,
+    "body": responseBody,
+    "isBase64Encoded": false
+  };
+}
