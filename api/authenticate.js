@@ -43,6 +43,13 @@ const authenticate = {
 			const decryptedValue = await cryptOperations.decrypt(csrfToken);
 			if (typeof decryptedValue === "string") {
 				accessData = JSON.parse(decryptedValue);
+				let now = new Date();
+				if(accessData.timeStamp < now.getTime()) {
+					error = {
+						statusCode: 403,
+						message: "The CSRF token is expired",
+					}
+				}
 			}
 			else {
 				error = {
@@ -78,12 +85,17 @@ const authenticate = {
 		};
 
 		if (accessToken && userId) {
-			// encrypt the github access token and userId
+			// encrypt the github access token, userId and timestamp (prevent replay attack)
 			// and send it as a csrf token
 			// which acts like a stateless csrf token (Encryption based Token Pattern)
-			const csrfToken = await cryptOperations.encrypt(JSON.stringify({ accessToken, userId }));
-
 			let now = new Date();
+
+			// making the CSRF token valid for 1 hour
+			const timeStamp = now.setHours(now.getHours() + 1);
+
+			const csrfToken = await cryptOperations.encrypt(JSON.stringify({ accessToken, userId, timeStamp }));
+
+			now = new Date();
 			now.setHours(now.getHours() + 1);
 			const cookieExpires = now.toUTCString();
 			responseHeaders["Set-Cookie"] = `csrf_token=${csrfToken}; Max-Age=86400; Path=/; Expires=${cookieExpires}; HttpOnly`;
