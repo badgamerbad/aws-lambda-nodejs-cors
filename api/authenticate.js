@@ -44,10 +44,10 @@ const authenticate = {
 			if (typeof decryptedValue === "string") {
 				accessData = JSON.parse(decryptedValue);
 				let now = new Date();
-				if(accessData.timeStamp < now.getTime()) {
+				if(!accessData.timeStamp || accessData.timeStamp < now.getTime()) {
 					error = {
 						statusCode: 403,
-						message: "The CSRF token is expired",
+						message: "The CSRF token is expired or invalid",
 					}
 				}
 			}
