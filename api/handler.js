@@ -49,6 +49,48 @@ exports.githubUserLogin = async (event, context) => {
   };
 };
 
+exports.getUserData = async (event, context) => {
+  const requestBody = await authenticate.normalizeRequest(event);
+  let responseStatusCode = 500, responseBody, responseHeaders;
+  
+  // check if error while forming the request body
+  if(requestBody.error) {
+    responseStatusCode = requestBody.error.statusCode;
+    responseHeaders = await authenticate.getResponseHeaders();
+    responseBody = JSON.stringify(requestBody);
+  }
+  // decrypt the csrf token and retrieve access token
+  // and fetch the github user details
+  else {
+    let decryptCsrfToken = await authenticate.getAccessDataFromCsrfToken(requestBody.headers);
+    if(decryptCsrfToken.error) {
+      responseStatusCode = decryptCsrfToken.error.statusCode;
+      responseHeaders = await authenticate.getResponseHeaders();
+      responseBody = decryptCsrfToken.error.message;
+    }
+    else {
+      let getUser = await githubFactory.getUser(decryptCsrfToken.accessData.accessToken);
+      if(getUser.error) {
+        responseStatusCode = getUser.error.statusCode;
+        responseHeaders = await authenticate.getResponseHeaders();
+        responseBody = getUser.error.message;
+      }
+      else {
+        responseStatusCode = 200;
+        responseHeaders = await authenticate.getResponseHeaders(decryptCsrfToken.accessData.accessToken, decryptCsrfToken.accessData.userId);
+        responseBody = JSON.stringify(getUser.userData);
+      }
+    }
+  }
+  
+  return {
+    "statusCode": responseStatusCode,
+    "headers": responseHeaders,
+    "body": responseBody,
+    "isBase64Encoded": false
+  };
+};
+
 exports.getSignedUrlForStorage = async (event, context) => {
   const requestBody = await authenticate.normalizeRequest(event);
   let responseStatusCode = 500, responseBody, responseHeaders;

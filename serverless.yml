@@ -27,6 +27,15 @@ functions:
          path: user/login
          method: post
          cors: true
+  getUserData:
+    handler: api/handler.getUserData
+    layers:
+      - {Ref: PublicModulesLambdaLayer}
+    events:
+     - http:
+         path: user/profile
+         method: get
+         cors: true
   getSignedUrlForStorage:
     handler: api/handler.getSignedUrlForStorage
     layers:

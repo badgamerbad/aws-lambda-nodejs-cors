@@ -3,6 +3,12 @@ const allowedOrigins = [`http://${process.env.APP_DOMAIN}`, `https://${process.e
 const cryptOperations = require("./utils/cryptOperation");
 
 const authenticate = {
+	/**
+	 * @description normalize the headers, body
+	 * @argument event
+	 * @returns
+	 * object {headers, body, error}
+	 */
 	normalizeRequest: async event => {
 		// Retrieve the request payload in the AWS lambda event
 		const headers = event.headers;
@@ -19,8 +25,15 @@ const authenticate = {
 			}
 		}
 
-		return { headers, body, error };
+		return {headers, body, error};
 	},
+	/**
+	 * @description verify the incoming request for CSRF
+	 * @argument event.headers
+	 * @returns 
+	 * object {accessData, error}
+	 * accessData = {accessToken, userId}
+	 */
 	getAccessDataFromCsrfToken: async headers => {
 		let accessData, error;
 
@@ -46,8 +59,18 @@ const authenticate = {
 			}
 		}
 
-		return { accessData, error }
+		return {accessData, error}
 	},
+	/**
+	 * @description generate the headers for the response
+	 * @argument accessToken, userId
+	 * @returns 
+	 * object {
+	 *   "Access-Control-Allow-Origin"
+	 *   "Access-Control-Allow-Credentials"
+	 *   "Set-Cookie"?
+	 * }
+	 */
 	getResponseHeaders: async (accessToken, userId) => {
 		// CORS headers
 		let responseHeaders = {
