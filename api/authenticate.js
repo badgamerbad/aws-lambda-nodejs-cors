@@ -14,8 +14,7 @@ const authenticate = {
 		const headers = event.headers;
 		const origin = headers.origin || headers.Origin;
 
-		const requestPayload = event.body || event.query;
-		const body = requestPayload ? JSON.parse(requestPayload) : {};
+		const body = event.body ? JSON.parse(event.body) : event.queryStringParameters ? event.queryStringParameters : {};
 
 		let error;
 		if (!allowedOrigins.includes(origin)) {
