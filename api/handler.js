@@ -34,9 +34,19 @@ exports.githubUserLogin = async (event, context) => {
         responseBody = getUser.error.message;
       }
       else {
-        responseStatusCode = 200;
         responseHeaders = await authenticate.getResponseHeaders(accessData.accessToken, getUser.userData.id);
-        responseBody = JSON.stringify(getUser.userData);
+        
+        let getFilesForUser = await gcpFactory.getFilesForUser(getUser.userData.id);
+        if(getFilesForUser.error) {
+          responseStatusCode = getFilesForUser.error.statusCode;
+          responseBody = getFilesForUser.error.message;
+        }
+        else {
+          getUser.userData.filesList = getFilesForUser.files;
+
+          responseStatusCode = 200;
+          responseBody = JSON.stringify(getUser.userData);
+        }
       }
     }
   }
@@ -69,16 +79,24 @@ exports.getUserData = async (event, context) => {
       responseBody = decryptCsrfToken.error.message;
     }
     else {
+      responseHeaders = await authenticate.getResponseHeaders(decryptCsrfToken.accessData.accessToken, decryptCsrfToken.accessData.userId);
       let getUser = await githubFactory.getUser(decryptCsrfToken.accessData.accessToken);
       if(getUser.error) {
         responseStatusCode = getUser.error.statusCode;
-        responseHeaders = await authenticate.getResponseHeaders();
         responseBody = getUser.error.message;
       }
       else {
-        responseStatusCode = 200;
-        responseHeaders = await authenticate.getResponseHeaders(decryptCsrfToken.accessData.accessToken, decryptCsrfToken.accessData.userId);
-        responseBody = JSON.stringify(getUser.userData);
+        let getFilesForUser = await gcpFactory.getFilesForUser(getUser.userData.id);
+        if(getFilesForUser.error) {
+          responseStatusCode = getFilesForUser.error.statusCode;
+          responseBody = getFilesForUser.error.message;
+        }
+        else {
+          getUser.userData.filesList = getFilesForUser.files;
+
+          responseStatusCode = 200;
+          responseBody = JSON.stringify(getUser.userData);
+        }
       }
     }
   }
@@ -112,6 +130,7 @@ exports.getSignedUrlForStorage = async (event, context) => {
       responseBody = decryptCsrfToken.error.message;
     }
     else {
+      responseHeaders = await authenticate.getResponseHeaders(decryptCsrfToken.accessData.accessToken, decryptCsrfToken.accessData.userId);
       const getSignedUrlParam = {
         userId: decryptCsrfToken.accessData.userId,
         fileType: requestBody.body.fileType,
@@ -119,12 +138,10 @@ exports.getSignedUrlForStorage = async (event, context) => {
       const getSignedUrlData = await gcpFactory.getSignedUrl(getSignedUrlParam);
       if(getSignedUrlData.error) {
         responseStatusCode = getSignedUrlData.error.statusCode;
-        responseHeaders = await authenticate.getResponseHeaders();
         responseBody = getSignedUrlData.error.message;
       }
       else {
         responseStatusCode = 200;
-        responseHeaders = await authenticate.getResponseHeaders(decryptCsrfToken.accessData.accessToken, decryptCsrfToken.accessData.userId);
         responseBody = getSignedUrlData.url;
       }
     }

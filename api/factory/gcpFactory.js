@@ -20,18 +20,17 @@ const gcpFactory = {
 	 */
 	getSignedUrl: async requestBody => {
 		let error, url;
-		
-		const bucketName = process.env.BUCKET_NAME;
-		const filename = `${uuid()}_${requestBody.userId}.${requestBody.fileType.replace(/image\//g, "")}`;
-
-		const gcpSignedUrlOptions = {
-			version: 'v4',
-			action: 'write',
-			expires: Date.now() + 8 * 60 * 60 * 1000, // 8 hours
-			contentType: requestBody.fileType,
-		};
-
 		try {
+			const bucketName = process.env.BUCKET_NAME;
+			const filename = `${uuid()}_${requestBody.userId}.${requestBody.fileType.replace(/image\//g, "")}`;
+
+			const gcpSignedUrlOptions = {
+				version: 'v4',
+				action: "write",
+				expires: Date.now() + 8 * 60 * 60 * 1000, // 8 hours
+				contentType: requestBody.fileType,
+			};
+
 			// Get a v4 signed URL for uploading file
 			const [generatedSignedUrl] = await storage
 				.bucket(bucketName)
@@ -56,6 +55,38 @@ const gcpFactory = {
 		}
 
 		return { url, error };
+	},
+	getFilesForUser: async userId => {
+		let error, files;
+		try {
+			const bucketName = process.env.BUCKET_NAME;
+
+			// Get list of files for logged in user
+			const [allFilesArray] = await storage.bucket(bucketName).getFiles();
+
+			if (!allFilesArray) {
+				error = {
+					statusCode: 500,
+					message: "Failed getting the file list",
+				}
+			}
+			else {
+				let filteredFiles = [];
+				for(let i = 0; i < allFilesArray.length; ++i ) {
+					if(allFilesArray[i].name.indexOf(`_${userId}`) > -1)
+						filteredFiles.push(allFilesArray[i].name);
+				}
+				files = filteredFiles;
+			}
+		}
+		catch(exception) {
+			error = {
+				statusCode: 500,
+				message: exception.message,
+			}
+		}
+
+		return { files, error };
 	}
 }
 
