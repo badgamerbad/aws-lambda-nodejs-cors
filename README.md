@@ -1,4 +1,4 @@
-# AWS Lambda Function in NodeJS with CORS enabled
+# AWS Lambda Function with CORS enabled for IngredoFit Application
 
 Test to enable CORS on aws lambda fucntion
 
