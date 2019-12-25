@@ -1,6 +1,6 @@
-# AWS Lambda Function with CORS enabled for IngredoFit Application
+# AWS Lambda Function (API) with CORS enabled for IngredoFit Application
 
-Test to enable CORS on aws lambda fucntion
+This serves the api for the ingredofit app for authorization and safekeeping of sercret keys.
 
 ### GCP
 To set cors on GCP buckets [See this.](https://cloud.google.com/storage/docs/configuring-cors)
