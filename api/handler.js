@@ -6,6 +6,7 @@ const authenticate = require("./authenticate");
 // data factories
 const githubFactory = require("./factory/githubFactory");
 const gcpFactory = require("./factory/gcpFactory");
+const clarifaiFactory = require("./factory/clarifaiFactory");
 
 exports.githubUserLogin = async (event, context) => {
   const requestBody = await authenticate.normalizeRequest(event);
@@ -135,7 +136,7 @@ exports.getSignedUrlForStorage = async (event, context) => {
         userId: decryptCsrfToken.accessData.userId,
         fileType: requestBody.body.fileType,
       }
-      const getSignedUrlData = await gcpFactory.getSignedUrl(getSignedUrlParam);
+      const getSignedUrlData = await gcpFactory.getSignedUrlWrite(getSignedUrlParam);
       if(getSignedUrlData.error) {
         responseStatusCode = getSignedUrlData.error.statusCode;
         responseBody = getSignedUrlData.error.message;
@@ -154,3 +155,58 @@ exports.getSignedUrlForStorage = async (event, context) => {
     "isBase64Encoded": false
   };
 }
+
+exports.getImageWithClarifaiIngredients = async (event, context) => {
+  const requestBody = await authenticate.normalizeRequest(event);
+  let responseStatusCode = 500, responseBody, responseHeaders;
+  
+  // check if error while forming the request body
+  if(requestBody.error) {
+    responseStatusCode = requestBody.error.statusCode;
+    responseHeaders = await authenticate.getResponseHeaders();
+    responseBody = JSON.stringify(requestBody);
+  }
+  // decrypt the csrf token and retrieve access token
+  // and fetch the github user details
+  else {
+    let decryptCsrfToken = await authenticate.getAccessDataFromCsrfToken(requestBody.headers);
+    if(decryptCsrfToken.error) {
+      responseStatusCode = decryptCsrfToken.error.statusCode;
+      responseHeaders = await authenticate.getResponseHeaders();
+      responseBody = decryptCsrfToken.error.message;
+    }
+    else {
+      responseHeaders = await authenticate.getResponseHeaders(decryptCsrfToken.accessData.accessToken, decryptCsrfToken.accessData.userId);
+      let getUser = await githubFactory.getUser(decryptCsrfToken.accessData.accessToken);
+      if(getUser.error) {
+        responseStatusCode = getUser.error.statusCode;
+        responseBody = getUser.error.message;
+      }
+      else {
+        let getSignedUrlData = await gcpFactory.getSignedUrlForFile(getUser.userData.id, requestBody.fileName);
+        if(getSignedUrlData.error) {
+          responseStatusCode = getSignedUrlData.error.statusCode;
+          responseBody = getSignedUrlData.error.message;
+        }
+        else {
+          let clarifaiData = await clarifaiFactory.getIngredients(getSignedUrlData.url);
+          if(clarifaiData.error) {
+            responseStatusCode = clarifaiData.error.statusCode;
+            responseBody = clarifaiData.error.message;
+          }
+          else {
+            responseStatusCode = 200;
+            responseBody = JSON.stringify({url: getSignedUrlData.url, ingredients: clarifaiData.ingredients});
+          }
+        }
+      }
+    }
+  }
+  
+  return {
+    "statusCode": responseStatusCode,
+    "headers": responseHeaders,
+    "body": responseBody,
+    "isBase64Encoded": false
+  };
+};

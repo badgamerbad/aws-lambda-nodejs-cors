@@ -11,31 +11,17 @@ const storage = new Storage({
   keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
 });
 
-const gcpFactory = {
-	/**
-	 * @description generate a signed url to upload the file from client side
-	 * directly from the browser to GCP bucket
-	 * @param object {userId, fileType}
-	 * @returns object {url, error}
-	 */
-	getSignedUrl: async requestBody => {
+const bucketName = process.env.BUCKET_NAME;
+
+const gcp = {
+	getSignedUrl: async (gcpOptions, fileName) => {
 		let error, url;
 		try {
-			const bucketName = process.env.BUCKET_NAME;
-			const filename = `${uuid()}_${requestBody.userId}.${requestBody.fileType.replace(/image\//g, "")}`;
-
-			const gcpSignedUrlOptions = {
-				version: 'v4',
-				action: "write",
-				expires: Date.now() + 8 * 60 * 60 * 1000, // 8 hours
-				contentType: requestBody.fileType,
-			};
-
 			// Get a v4 signed URL for uploading file
 			const [generatedSignedUrl] = await storage
 				.bucket(bucketName)
-				.file(filename)
-				.getSignedUrl(gcpSignedUrlOptions);
+				.file(fileName)
+				.getSignedUrl(gcpOptions);
 
 			if (!generatedSignedUrl) {
 				error = {
@@ -54,29 +40,22 @@ const gcpFactory = {
 			}
 		}
 
-		return { url, error };
+		return {error, url};
 	},
-	getFilesForUser: async userId => {
+	getFilesFromBucket: async () => {
 		let error, files;
 		try {
-			const bucketName = process.env.BUCKET_NAME;
-
 			// Get list of files for logged in user
-			const [allFilesArray] = await storage.bucket(bucketName).getFiles();
+			const [allFilesFromBucket] = await storage.bucket(bucketName).getFiles();
 
-			if (!allFilesArray) {
+			if (!allFilesFromBucket) {
 				error = {
 					statusCode: 500,
 					message: "Failed getting the file list",
 				}
 			}
 			else {
-				let filteredFiles = [];
-				for(let i = 0; i < allFilesArray.length; ++i ) {
-					if(allFilesArray[i].name.indexOf(`_${userId}`) > -1)
-						filteredFiles.push(allFilesArray[i].name);
-				}
-				files = filteredFiles;
+				files = allFilesFromBucket;
 			}
 		}
 		catch(exception) {
@@ -84,6 +63,100 @@ const gcpFactory = {
 				statusCode: 500,
 				message: exception.message,
 			}
+		}
+
+		return { files, error };
+	}
+}
+
+const gcpFactory = {
+	/**
+	 * @description generate a signed url to upload the file from client side
+	 * directly from the browser to GCP bucket
+	 * @param object {userId, fileType}
+	 * @returns {url, error}
+	 */
+	getSignedUrlWrite: async requestBody => {
+		let error, url;
+
+		const fileName = `${uuid()}_${requestBody.userId}.${requestBody.fileType.replace(/image\//g, "")}`;
+
+		const gcpOptions = {
+			version: 'v4',
+			action: "write",
+			expires: Date.now() + 8 * 60 * 60 * 1000, // 8 hours
+			contentType: requestBody.fileType,
+		};
+
+		let getSignedUrl = await gcp.getSignedUrl(gcpOptions, fileName);
+		if(getSignedUrl.error) {
+			error = getSignedUrl.error;
+		}
+		else {
+			url = getSignedUrl.url;
+		}
+
+		return { url, error };
+	},
+	getSignedUrlForFile: async (userId, requestedfileName) => {
+		let error, url;
+
+		let allFilesFromBucket = await gcp.getFilesFromBucket();
+		if(allFilesFromBucket.error) {
+			error = allFilesFromBucket.error;
+		}
+		else {
+			let _files = allFilesFromBucket.files;
+			let validFileName;
+			for(let i = 0; i < _files.length; ++i) {
+				if(_files[i].name.indexOf(`_${userId}`) > -1 && requestedfileName === _files[i].name) {
+					validFileName = _files[i].name;
+				}
+			}
+			if(!validFileName) {
+				error = {
+					statusCode: 400,
+					message: "Invalid File Name",
+				}
+			}
+			else {
+				const gcpOptions = {
+					version: 'v4',
+					action: "read",
+					expires: Date.now() + 8 * 60 * 60 * 1000, // 8 hours
+				};
+		
+				let getSignedUrl = await gcp.getSignedUrl(gcpOptions, validFileName);
+				if(getSignedUrl.error) {
+					error = getSignedUrl.error;
+				}
+				else {
+					url = getSignedUrl.url;
+				}
+			}
+		}
+
+		return { url, error };
+	},
+	/**
+	 * @description fetch the files for specific user
+	 * @returns {files, error}
+	 */
+	getFilesForUser: async userId => {
+		let error, files;
+
+		let allFilesFromBucket = await gcp.getFilesFromBucket();
+		if(allFilesFromBucket.error) {
+			error = allFilesFromBucket.error;
+		}
+		else {
+			let filteredFiles = [];
+			let _files = allFilesFromBucket.files;
+			for(let i = 0; i < _files.length; ++i ) {
+				if(_files[i].name.indexOf(`_${userId}`) > -1)
+					filteredFiles.push(_files[i].name);
+			}
+			files = filteredFiles;
 		}
 
 		return { files, error };
