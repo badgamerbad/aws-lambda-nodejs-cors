@@ -183,7 +183,7 @@ exports.getImageWithClarifaiIngredients = async (event, context) => {
         responseBody = getUser.error.message;
       }
       else {
-        let getSignedUrlData = await gcpFactory.getSignedUrlForFile(getUser.userData.id, requestBody.fileName);
+        let getSignedUrlData = await gcpFactory.getSignedUrlForFile(getUser.userData.id, requestBody.body.fileName);
         if(getSignedUrlData.error) {
           responseStatusCode = getSignedUrlData.error.statusCode;
           responseBody = getSignedUrlData.error.message;

@@ -98,6 +98,10 @@ const gcpFactory = {
 
 		return { url, error };
 	},
+	/**
+	 * @description generate signed url for the uploaded file by its user
+	 * @returns {error, url}
+	 */
 	getSignedUrlForFile: async (userId, requestedfileName) => {
 		let error, url;
 

@@ -2,15 +2,13 @@
 
 const clarifai = require("clarifai");
 
-const FOOD_DATA = require("./db/ingredients");
+const foodDataDb = require("./db/ingredients");
 
 const clarifaiApp = new clarifai.App({
     apiKey: process.env.CLARIFAI_API_KEY,
 });
 
-
-// TODO add modelkey to env
-const modelKey = 'bd367be194cf45149e75f01d59f77ba7';
+const modelId = process.env.CLARIFAI_MODEL_ID;
 
 const clarifaiFactory = {
     /**
@@ -21,19 +19,13 @@ const clarifaiFactory = {
     getIngredients: async uploadedFileUrl => {
         let error, ingredients;
 
-        let clarifaiIngredientsData = await clarifaiApp.models.predict(modelKey, uploadedFileUrl);
-        if(clarifaiIngredientsData.error) {
-            error = {
-                statusCode = clarifaiIngredientsData.error.statusCode,
-                message = clarifaiIngredientsData.error.message,
-            }
-        }
-        else {
-            let concepts = clarifaiIngredientsData['outputs'][0]['data']['concepts']
+        let clarifaiIngredientsData = await clarifaiApp.models.predict(modelId, uploadedFileUrl);
+        if(clarifaiIngredientsData && clarifaiIngredientsData.status && clarifaiIngredientsData.status.code === 10000) {
+            let concepts = clarifaiIngredientsData['outputs'][0]['data']['concepts'];
       
             let filteredIngredients = concepts.map(
                 concept => {
-                    let ingredient = FOOD_DATA.find(food => food.name === concept.name)
+                    let ingredient = foodDataDb.find(food => food.name === concept.name)
                     return {
                         ...concept,
                         ...ingredient,
@@ -41,6 +33,13 @@ const clarifaiFactory = {
                 }
             );
             ingredients = filteredIngredients;
+        }
+        else {
+            let genericErrMessage = "Error fetching the clarifai API";
+            error = {
+                statusCode: 500,
+                message: clarifaiIngredientsData ? clarifaiIngredientsData.status ? clarifaiIngredientsData.status.description : genericErrMessage : genericErrMessage,
+            }
         }
 
         return {error, ingredients}
