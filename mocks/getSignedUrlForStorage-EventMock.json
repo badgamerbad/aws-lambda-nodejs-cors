@@ -3,7 +3,7 @@
         "Accept": "application/json",
         "Content-Type": "application/json",
         "Origin": "http://localhost:8000",
-        "Cookie": "csrf_token=5L7OptvZnoHgSmWBaDyiHavsBna5Tk7HC5dqOe7UdmNWvdLMDGzSljZMw2XXyvHsgmGUjb7gBhJvhAIQJS7qRUJXMcTDmDdMVAp+v1l1XcDI6nOAOw0flncaXhxwUccD2D5a3qNNAgC9N0aiYSOi12JS7wCCVelhRt41GCjwJsyfgHteLseps6gm74s02uRZFjJGUaVGQhRyCBgL4xHk5wfSBXpF/Tg16jQN/esZPBByOvXJazUEaIPbc2T6LrgAUgXNp41v"
+        "Cookie": "csrf_token=Sge1sAtqioewNJCiIgJRh41O3cz3nLKvqaTRUKGtSD2GP9u/w2Cxf68uPOjqfKID5j3GzMCvaZKr3ywPRlN1efQcv9AMYxqlZiSJ9/ox1iaGji4iIfhPyAY03MGrAB1N7eulKMic8mfdnnfYgXHUVW4yjxVPT0EExRkmnvuEbmTTAgVfXbnoDBxiEDTWFwshELGlPdVYpxUZpIhpQ++6P37OE2Y8+u6SGijvrXVEEVwVVvBxkBfO2YqsmcCIlI+ANauB63fL"
     },
     "queryStringParameters": {
         "fileType": "image/png"

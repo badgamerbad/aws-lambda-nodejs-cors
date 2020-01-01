@@ -45,3 +45,12 @@ functions:
          path: file/signedUrl
          method: get
          cors: true
+  getImageWithClarifaiIngredients:
+    handler: api/handler.getImageWithClarifaiIngredients
+    layers:
+      - {Ref: PublicModulesLambdaLayer}
+    events:
+      - http:
+          path: file/signedUrlAndIngredients
+          method: get
+          cors: true
