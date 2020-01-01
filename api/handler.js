@@ -143,7 +143,7 @@ exports.getSignedUrlForStorage = async (event, context) => {
       }
       else {
         responseStatusCode = 200;
-        responseBody = getSignedUrlData;
+        responseBody = JSON.stringify(getSignedUrlData);
       }
     }
   }
