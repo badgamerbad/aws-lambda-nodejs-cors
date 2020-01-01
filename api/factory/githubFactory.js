@@ -5,10 +5,12 @@ const util = require("util");
 let _request = require("request");
 _request = util.promisify(_request);
 
+const redirectUri = `${process.env.HTTP_TYPE}://${process.env.APP_DOMAIN}`;
+
 const githubOauthConfig = {
 	clientId: process.env.GITHUB_CLIENT_ID,
 	clientSecret: process.env.GITHUB_CLIENT_SECRET,
-	redirectUri: `http://${process.env.APP_DOMAIN}/`,
+	redirectUri: redirectUri,
 	githubGetAccessTokenUrl: "https://github.com/login/oauth/access_token",
 	githubGetUserDataUrl: "https://api.github.com/user",
 };

@@ -1,4 +1,4 @@
-const allowedOrigins = [`http://${process.env.APP_DOMAIN}`, `https://${process.env.APP_DOMAIN}`];
+const allowedOrigin = [`${process.env.HTTP_TYPE}://${process.env.APP_DOMAIN}`];
 
 const cryptOperations = require("./utils/cryptOperation");
 
@@ -17,7 +17,7 @@ const authenticate = {
 		const body = event.body ? JSON.parse(event.body) : event.queryStringParameters ? event.queryStringParameters : {};
 
 		let error;
-		if (!allowedOrigins.includes(origin)) {
+		if (!allowedOrigin.includes(origin)) {
 			error = {
 				statusCode: 403,
 				message: `${origin} is not an allowed origin.`,
@@ -80,7 +80,7 @@ const authenticate = {
 	getResponseHeaders: async (accessToken, userId) => {
 		// CORS headers
 		let responseHeaders = {
-			"Access-Control-Allow-Origin": `http://${process.env.APP_DOMAIN}`,
+			"Access-Control-Allow-Origin": allowedOrigin[0],
 			"Access-Control-Allow-Credentials": true,
 		};
 
