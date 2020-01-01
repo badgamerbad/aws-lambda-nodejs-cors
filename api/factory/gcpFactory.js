@@ -77,9 +77,9 @@ const gcpFactory = {
 	 * @returns {url, error}
 	 */
 	getSignedUrlWrite: async requestBody => {
-		let error, url;
+		let error, uploadedFileData;
 
-		const fileName = `${uuid()}_${requestBody.userId}.${requestBody.fileType.replace(/image\//g, "")}`;
+		const uploadedFileName = `${uuid()}_${requestBody.userId}.${requestBody.fileType.replace(/image\//g, "")}`;
 
 		const gcpOptions = {
 			version: 'v4',
@@ -88,15 +88,18 @@ const gcpFactory = {
 			contentType: requestBody.fileType,
 		};
 
-		let getSignedUrl = await gcp.getSignedUrl(gcpOptions, fileName);
+		let getSignedUrl = await gcp.getSignedUrl(gcpOptions, uploadedFileName);
 		if(getSignedUrl.error) {
 			error = getSignedUrl.error;
 		}
 		else {
-			url = getSignedUrl.url;
+			uploadedFileData = {
+				url: getSignedUrl.url,
+				uploadedFileName
+			}
 		}
 
-		return { url, error };
+		return { uploadedFileData, error };
 	},
 	/**
 	 * @description generate signed url for the uploaded file by its user
