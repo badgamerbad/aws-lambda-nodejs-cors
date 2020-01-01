@@ -76,10 +76,4 @@ const nutritionalValues = [
   { name: 'pepper', calories: 40, protein: '2g', c: '157%' },
 ];
 
-const foodDb = {
-  getNutritionalValues: () => {
-    return nutritionalValues;
-  }
-}
-
 module.exports = nutritionalValues;
