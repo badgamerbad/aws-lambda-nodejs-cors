@@ -5,7 +5,7 @@ const util = require("util");
 let _request = require("request");
 _request = util.promisify(_request);
 
-const redirectUri = `${process.env.HTTP_TYPE}://${process.env.APP_DOMAIN}`;
+const redirectUri = `${process.env.HTTP_TYPE}://${process.env.APP_DOMAIN}/login`;
 
 const githubOauthConfig = {
 	clientId: process.env.GITHUB_CLIENT_ID,
