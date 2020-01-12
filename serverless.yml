@@ -54,3 +54,12 @@ functions:
           path: file/signedUrlAndIngredients
           method: get
           cors: true
+  deleteFileFromStorage:
+    handler: api/handler.deleteFileFromStorage
+    layers:
+      - {Ref: PublicModulesLambdaLayer}
+    events:
+      - http:
+          path: file/:fileName
+          method: get
+          cors: true

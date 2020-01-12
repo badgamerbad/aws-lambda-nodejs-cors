@@ -210,3 +210,51 @@ exports.getImageWithClarifaiIngredients = async (event, context) => {
     "isBase64Encoded": false
   };
 };
+
+exports.deleteFileFromStorage = async (event, context) => {
+  const requestBody = await authenticate.normalizeRequest(event);
+  let responseStatusCode = 500, responseBody, responseHeaders;
+  
+  // check if error while forming the request body
+  if(requestBody.error) {
+    responseStatusCode = requestBody.error.statusCode;
+    responseHeaders = await authenticate.getResponseHeaders();
+    responseBody = JSON.stringify(requestBody);
+  }
+  // decrypt the csrf token and retrieve access token
+  // and fetch the github user details
+  else {
+    let decryptCsrfToken = await authenticate.getAccessDataFromCsrfToken(requestBody.headers);
+    if(decryptCsrfToken.error) {
+      responseStatusCode = decryptCsrfToken.error.statusCode;
+      responseHeaders = await authenticate.getResponseHeaders();
+      responseBody = decryptCsrfToken.error.message;
+    }
+    else {
+      responseHeaders = await authenticate.getResponseHeaders(decryptCsrfToken.accessData.accessToken, decryptCsrfToken.accessData.userId);
+      let getSignedUrlData = await gcpFactory.deleteFileFromBucket(requestBody.body.fileName);
+      if(getSignedUrlData.error) {
+        responseStatusCode = getSignedUrlData.error.statusCode;
+        responseBody = getSignedUrlData.error.message;
+      }
+      else {
+        let clarifaiData = await clarifaiFactory.getIngredients(getSignedUrlData.url);
+        if(clarifaiData.error) {
+          responseStatusCode = clarifaiData.error.statusCode;
+          responseBody = clarifaiData.error.message;
+        }
+        else {
+          responseStatusCode = 200;
+          responseBody = JSON.stringify({url: getSignedUrlData.url, ingredients: clarifaiData.ingredients});
+        }
+      }
+    }
+  }
+  
+  return {
+    "statusCode": responseStatusCode,
+    "headers": responseHeaders,
+    "body": responseBody,
+    "isBase64Encoded": false
+  };
+};

@@ -14,6 +14,10 @@ const storage = new Storage({
 const bucketName = process.env.BUCKET_NAME;
 
 const gcp = {
+	/**
+	 * @description fuction to call GCP methods to generate signed url for requested file
+	 * @returns {signedUrl, error}
+	 */
 	getSignedUrl: async (gcpOptions, fileName) => {
 		let error, url;
 		try {
@@ -40,8 +44,12 @@ const gcp = {
 			}
 		}
 
-		return {error, url};
+		return {url, error};
 	},
+	/**
+	 * @description fuction to call GCP methods to get all requested files
+	 * @returns {files, error}
+	 */
 	getFilesFromBucket: async () => {
 		let error, files;
 		try {
@@ -66,6 +74,35 @@ const gcp = {
 		}
 
 		return { files, error };
+	},
+	/**
+	 * @description fuction to call GCP methods to delete the requested file
+	 * @returns {status, error}
+	 */
+	deleteFileFromBucket: async fileName => {
+		let error, status;
+		try {
+			// Get list of files for logged in user
+			const [fileStatus] = await storage.bucket(bucketName).file(fileName).delete();
+
+			if (!fileStatus) {
+				error = {
+					statusCode: 500,
+					message: "Failed deleting the file list",
+				}
+			}
+			else {
+				status = fileStatus;
+			}
+		}
+		catch(exception) {
+			error = {
+				statusCode: 500,
+				message: exception.message,
+			}
+		}
+
+		return {status, error};
 	}
 }
 
@@ -73,8 +110,8 @@ const gcpFactory = {
 	/**
 	 * @description generate a signed url to upload the file from client side
 	 * directly from the browser to GCP bucket
-	 * @param object {userId, fileType}
-	 * @returns {url, error}
+	 * @param {userId, fileType}
+	 * @returns {uploadedFileData, error}
 	 */
 	getSignedUrlWrite: async requestBody => {
 		let error, uploadedFileData;
@@ -103,7 +140,7 @@ const gcpFactory = {
 	},
 	/**
 	 * @description generate signed url for the uploaded file by its user
-	 * @returns {error, url}
+	 * @returns {url, error}
 	 */
 	getSignedUrlForFile: async (userId, requestedfileName) => {
 		let error, url;
@@ -167,6 +204,23 @@ const gcpFactory = {
 		}
 
 		return { files, error };
+	},
+	/**
+	 * @description delete the requested file from the storage and return status
+	 * @return {status, error}
+	 */
+	deleteFileFromBucket: async fileName => {
+		let status, error;
+
+		let fileStatus = await gcp.deleteFileFromBucket(fileName);
+		if(fileStatus.error) {
+			error = fileStatus.error;
+		}
+		else {
+			status = fileStatus.status;
+		}
+
+		return { status, error };
 	}
 }
 
