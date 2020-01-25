@@ -87,8 +87,8 @@ const authenticate = {
 			// which acts like a stateless csrf token (Encryption based Token Pattern)
 			let now = new Date();
 
-			// making the CSRF token valid for 1 hour
-			const timeStamp = now.setHours(now.getHours() + 1);
+			// making the CSRF token valid for hour(s) in env CSRF_MAX_AGE_IN_HOURS
+			const timeStamp = now.setHours(now.getHours() + parseInt(process.env.CSRF_MAX_AGE_IN_HOURS));
 
 			const csrfToken = await cryptOperations.encrypt(JSON.stringify({ accessToken, userId, timeStamp }));
 
