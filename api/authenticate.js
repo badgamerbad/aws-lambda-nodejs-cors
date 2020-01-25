@@ -1,13 +1,13 @@
 const allowedOrigin = [`${process.env.HTTP_TYPE}://${process.env.APP_DOMAIN}`];
 
 const cryptOperations = require("./utils/cryptOperation");
+const jwtOperations = require("./utils/jwtOperations");
 
 const authenticate = {
 	/**
 	 * @description normalize the headers, body
-	 * @argument event
-	 * @returns
-	 * object {headers, body, error}
+	 * @argument {event}
+	 * @returns {headers, body, error}
 	 */
 	normalizeRequest: async event => {
 		// Retrieve the request payload in the AWS lambda event
@@ -28,10 +28,8 @@ const authenticate = {
 	},
 	/**
 	 * @description verify the incoming request for CSRF
-	 * @argument event.headers
-	 * @returns 
-	 * object {accessData, error}
-	 * accessData = {accessToken, userId}
+	 * @argument {event.headers}
+	 * @returns {accessData: {accessToken, userId}, error} 
 	 */
 	getAccessDataFromCsrfToken: async headers => {
 		let accessData, error;
@@ -69,9 +67,8 @@ const authenticate = {
 	},
 	/**
 	 * @description generate the headers for the response
-	 * @argument accessToken, userId
-	 * @returns 
-	 * object {
+	 * @argument {accessToken, userId}
+	 * @returns {
 	 *   "Access-Control-Allow-Origin"
 	 *   "Access-Control-Allow-Credentials"
 	 *   "Set-Cookie"?
@@ -102,6 +99,33 @@ const authenticate = {
 		}
 
 		return responseHeaders;
+	},
+	/**
+	 * @description generate an jwt of the data provided
+	 * @returns {jwt}
+	 */
+	getEncodedJwt: async data => {
+		return await jwtOperations.encrypt(data);
+	},
+	/**
+	 * @description generate an jwt of the data provided
+	 * @returns {data, error}
+	 */
+	getDecodedJwt: async jwtFromReq => {
+		let data, error;
+
+		const decodedJwt = await jwtOperations.decrypt(jwtFromReq)
+		if(typeof decodedJwt === "string") {
+			return JSON.parse(decodedJwt);
+		}
+		else {
+			error = {
+				message: decodedJwt.message,
+				statusCode: 500
+			}
+		}
+
+		return {data, error}
 	}
 }
 

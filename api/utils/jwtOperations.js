@@ -3,24 +3,35 @@ const jwt = require('jsonwebtoken');
 const secretKey = process.env.SECRET_KEY;
 
 const jwtOperation = {
-    encrypt: async data => {
-        var token = jwt.sign(data, secretKey);
-        return token;
+    encrypt: data => {
+        try {
+            var token = jwt.sign(data, secretKey);
+            return token;
+        }
+        catch (exception) {
+            return expection;
+        }
     },
-    decrypt: async (jwtFromReq) => {
-        var data = jwt.verify(jwtFromReq, secretKey);
-        return data;
+    decrypt: jwtFromReq => {
+        // handle the error in case of a mismatching JWT signature
+        try {
+            var data = jwt.verify(jwtFromReq, secretKey);
+            return data;
+        }
+        catch (exception) {
+            return exception;
+        }
     },
 }
 
-// module.exports = jwtOperation;
+module.exports = jwtOperation;
 
-const someFunction = async () => {
-    let data = {foo: "bar"}
-    let token = await jwtOperation.encrypt(data);
-    let dataAfter = await jwtOperation.decrypt(token);
+// const testJwtOperation = async () => {
+//     let data = {foo: "bar"}
+//     let token = jwtOperation.encrypt(data);
+//     let dataAfter = jwtOperation.decrypt(token);
 
-    let foo = "bar";
-} 
+//     let foo = "bar";
+// } 
 
-someFunction();
+// testJwtOperation();
