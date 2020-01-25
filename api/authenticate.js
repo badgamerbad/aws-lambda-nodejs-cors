@@ -105,27 +105,15 @@ const authenticate = {
 	 * @returns {jwt}
 	 */
 	getEncodedJwt: async data => {
-		return await jwtOperations.encrypt(data);
+		return jwtOperations.encrypt(data);
 	},
 	/**
 	 * @description generate an jwt of the data provided
-	 * @returns {data, error}
+	 * @returns {data}
 	 */
 	getDecodedJwt: async jwtFromReq => {
-		let data, error;
-
-		const decodedJwt = await jwtOperations.decrypt(jwtFromReq)
-		if(typeof decodedJwt === "string") {
-			return JSON.parse(decodedJwt);
-		}
-		else {
-			error = {
-				message: decodedJwt.message,
-				statusCode: 500
-			}
-		}
-
-		return {data, error}
+		const decodedJwt = jwtOperations.decrypt(jwtFromReq);
+		return JSON.parse(decodedJwt);
 	}
 }
 

@@ -10,7 +10,7 @@ const clarifaiFactory = require("./factory/clarifaiFactory");
 
 exports.githubUserLogin = async (event, context) => {
   let responseStatusCode = 500, responseBody, responseHeaders;
-  
+
   try {
     const requestBody = await authenticate.normalizeRequest(event);
 
@@ -256,7 +256,7 @@ exports.deleteFileFromStorage = async (event, context) => {
       responseBody = JSON.stringify(requestBody);
     }
     // decrypt the csrf token and retrieve access token
-    // and fetch the github user details
+    // and delete the requested file from the storage
     else {
       let decryptCsrfToken = await authenticate.getAccessDataFromCsrfToken(requestBody.headers);
       if (decryptCsrfToken.error) {
@@ -266,21 +266,14 @@ exports.deleteFileFromStorage = async (event, context) => {
       }
       else {
         responseHeaders = await authenticate.getResponseHeaders(decryptCsrfToken.accessData.accessToken, decryptCsrfToken.accessData.userId);
-        let getSignedUrlData = await gcpFactory.deleteFileFromBucket(requestBody.body.fileName);
-        if (getSignedUrlData.error) {
-          responseStatusCode = getSignedUrlData.error.statusCode;
-          responseBody = getSignedUrlData.error.message;
+        let deleteFileData = await gcpFactory.deleteFileFromBucket(requestBody.body.fileName);
+        if (deleteFileData.error) {
+          responseStatusCode = deleteFileData.error.statusCode;
+          responseBody = deleteFileData.error.message;
         }
         else {
-          let clarifaiData = await clarifaiFactory.getIngredients(getSignedUrlData.url);
-          if (clarifaiData.error) {
-            responseStatusCode = clarifaiData.error.statusCode;
-            responseBody = clarifaiData.error.message;
-          }
-          else {
-            responseStatusCode = 200;
-            responseBody = JSON.stringify({ url: getSignedUrlData.url, ingredients: clarifaiData.ingredients });
-          }
+          responseStatusCode = 200;
+          responseBody = deleteFileData.message;
         }
       }
     }

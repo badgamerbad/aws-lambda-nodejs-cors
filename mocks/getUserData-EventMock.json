@@ -3,6 +3,6 @@
         "Accept": "application/json",
         "Content-Type": "application/json",
         "Origin": "http://localhost:8000",
-        "Cookie": "csrf_token=KHquIpOUepuhrleRoXuBnh/pQcwwqEBacsdiBvTYbAtdqC98m0NYBW1MunnG0MWQBY9yXncDBafw4hPEygaswLaHbPn82uj2HkIslLeFNF58R1+4MvlvYCdLcyuVl8EGkYuW7erZ6WpzK/FxWNp4dKX6atNJfZI2RSKGQoP+zFQl6eI72emYVZ1fNKVMnUeN1WSt1Tm/DI53u3YzFkOc6tsTSU0z8+/a6LsH5rM4SnBaA18sLNgqS/IcP4yT6q4Pg8dgbNKo"
+        "Cookie": "csrf_token=wZLenrpjG5o8frDyBOElLq01CF1Q1E6H2maj9SLQdY+LCdii6TzNbaFd69FciqY/KbsiM5cy9u0kZa70+lKqXqL7hBWjJWQ6X8Z0jp+9i0x+C5+KwivqNcMmHmLLfnADph29TKLOfSXzUva8ubN+9rIQs1AnRwOGyOgYp75p1eOTs8qDD9LY55Z1HvgYdCxe9KTfTXizAnGZQE+PZErwF3rumCETHKTU27l52+H95GM0s+vyI+cpY6JkIJMzEEhJJltnoRi/"
     }
 }
