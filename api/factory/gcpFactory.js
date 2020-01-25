@@ -13,7 +13,7 @@ const storage = new Storage({
 
 const bucketName = process.env.BUCKET_NAME;
 
-const gcp = {
+const factory = {
 	/**
 	 * @description fuction to call GCP methods to generate signed url for requested file
 	 * @returns {signedUrl, error}
@@ -125,7 +125,7 @@ const gcpFactory = {
 			contentType: requestBody.fileType,
 		};
 
-		let getSignedUrl = await gcp.getSignedUrl(gcpOptions, uploadedFileName);
+		let getSignedUrl = await factory.getSignedUrl(gcpOptions, uploadedFileName);
 		if(getSignedUrl.error) {
 			error = getSignedUrl.error;
 		}
@@ -145,7 +145,7 @@ const gcpFactory = {
 	getSignedUrlForFile: async (userId, requestedfileName) => {
 		let error, url;
 
-		let allFilesFromBucket = await gcp.getFilesFromBucket();
+		let allFilesFromBucket = await factory.getFilesFromBucket();
 		if(allFilesFromBucket.error) {
 			error = allFilesFromBucket.error;
 		}
@@ -170,7 +170,7 @@ const gcpFactory = {
 					expires: Date.now() + 8 * 60 * 60 * 1000, // 8 hours
 				};
 		
-				let getSignedUrl = await gcp.getSignedUrl(gcpOptions, validFileName);
+				let getSignedUrl = await factory.getSignedUrl(gcpOptions, validFileName);
 				if(getSignedUrl.error) {
 					error = getSignedUrl.error;
 				}
@@ -189,7 +189,7 @@ const gcpFactory = {
 	getFilesForUser: async userId => {
 		let error, files;
 
-		let allFilesFromBucket = await gcp.getFilesFromBucket();
+		let allFilesFromBucket = await factory.getFilesFromBucket();
 		if(allFilesFromBucket.error) {
 			error = allFilesFromBucket.error;
 		}
@@ -197,8 +197,26 @@ const gcpFactory = {
 			let filteredFiles = [];
 			let _files = allFilesFromBucket.files;
 			for(let i = 0; i < _files.length; ++i ) {
-				if(_files[i].name.indexOf(`_${userId}`) > -1)
-					filteredFiles.push(_files[i].name);
+				if(_files[i].name.indexOf(`_${userId}`) > -1) {
+					const fileName = _files[i].name;
+
+					const gcpOptions = {
+						version: 'v4',
+						action: "read",
+						expires: Date.now() + 8 * 60 * 60 * 1000, // 8 hours
+					};
+			
+					let getSignedUrl = await factory.getSignedUrl(gcpOptions, fileName);
+					if(getSignedUrl.error) {
+						error = getSignedUrl.error;
+						break;
+					}
+					
+					let url = getSignedUrl.url;
+
+					filteredFiles.push({fileName, url});
+				}
+					
 			}
 			files = filteredFiles;
 		}
@@ -209,10 +227,10 @@ const gcpFactory = {
 	 * @description delete the requested file from the storage and return status
 	 * @return {status, error}
 	 */
-	deleteFileFromBucket: async fileName => {
+	deleteFileFromBucket: async (userId, requestedfileName) => {
 		let status, error;
 
-		let fileStatus = await gcp.deleteFileFromBucket(fileName);
+		let fileStatus = await factory.deleteFileFromBucket(requestedfileName);
 		if(fileStatus.error) {
 			error = fileStatus.error;
 		}

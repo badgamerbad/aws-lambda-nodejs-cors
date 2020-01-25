@@ -8,6 +8,13 @@ const githubFactory = require("./factory/githubFactory");
 const gcpFactory = require("./factory/gcpFactory");
 const clarifaiFactory = require("./factory/clarifaiFactory");
 
+/**
+ * @description exchange the access code for access token and 
+ * get the user data along with the list of files in the 
+ * storage for the user
+ * @argument {queryStringParameters.code}
+ * @returns {userData, filesList}
+ */
 exports.githubUserLogin = async (event, context) => {
   let responseStatusCode = 500, responseBody, responseHeaders;
 
@@ -67,7 +74,12 @@ exports.githubUserLogin = async (event, context) => {
     "isBase64Encoded": false
   };
 };
-
+/**
+ * @description get user data along with the list of files in the 
+ * storage for the logged in user
+ * @argument {header.csrf_token}
+ * @returns {userData, filesList}
+ */
 exports.getUserData = async (event, context) => {
   let responseStatusCode = 500, responseBody, responseHeaders;
 
@@ -106,7 +118,7 @@ exports.getUserData = async (event, context) => {
             getUser.userData.filesList = getFilesForUser.files;
 
             responseStatusCode = 200;
-            responseBody = JSON.stringify(getUser.userData);
+            responseBody = await authenticate.getEncodedJwt(getUser.userData);
           }
         }
       }
@@ -125,7 +137,11 @@ exports.getUserData = async (event, context) => {
     "isBase64Encoded": false
   };
 };
-
+/**
+ * @description get signed URL to upload the file directly into the storage
+ * @argument {header.csrf_token, queryStringParameters.fileType}
+ * @returns {pictureImageUploadingSignedUrl}
+ */
 exports.getSignedUrlForStorage = async (event, context) => {
   let responseStatusCode = 500, responseBody, responseHeaders;
 
@@ -179,7 +195,12 @@ exports.getSignedUrlForStorage = async (event, context) => {
     "isBase64Encoded": false
   };
 }
-
+/**
+ * @description get the signed URL for downloading the picture image file on the client side
+ * along with its ingredients listing
+ * @argument {header.csrf_token, queryStringParameters.fileName, userDataJwt}
+ * @returns {pictureImageDownloadingSignedUrl, ingredientsListing}
+ */
 exports.getImageWithClarifaiIngredients = async (event, context) => {
   let responseStatusCode = 500, responseBody, responseHeaders;
 
@@ -242,7 +263,11 @@ exports.getImageWithClarifaiIngredients = async (event, context) => {
     "isBase64Encoded": false
   };
 };
-
+/**
+ * @description delete the requested file from the storage
+ * @argument {header.csrf_token, queryStringParameters.fileName, userDataJwt}
+ * @returns {fileStatus}
+ */
 exports.deleteFileFromStorage = async (event, context) => {
   let responseStatusCode = 500, responseBody, responseHeaders;
 
@@ -266,14 +291,21 @@ exports.deleteFileFromStorage = async (event, context) => {
       }
       else {
         responseHeaders = await authenticate.getResponseHeaders(decryptCsrfToken.accessData.accessToken, decryptCsrfToken.accessData.userId);
-        let deleteFileData = await gcpFactory.deleteFileFromBucket(requestBody.body.fileName);
-        if (deleteFileData.error) {
-          responseStatusCode = deleteFileData.error.statusCode;
-          responseBody = deleteFileData.error.message;
+        let getUser = await githubFactory.getUser(decryptCsrfToken.accessData.accessToken);
+        if (getUser.error) {
+          responseStatusCode = getUser.error.statusCode;
+          responseBody = getUser.error.message;
         }
         else {
-          responseStatusCode = 200;
-          responseBody = deleteFileData.message;
+          let deleteFileData = await gcpFactory.deleteFileFromBucket(getUser.userData.id, requestBody.body.fileName);
+          if (deleteFileData.error) {
+            responseStatusCode = deleteFileData.error.statusCode;
+            responseBody = deleteFileData.error.message;
+          }
+          else {
+            responseStatusCode = 200;
+            responseBody = deleteFileData.message;
+          }
         }
       }
     }
