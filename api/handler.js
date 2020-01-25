@@ -64,7 +64,7 @@ exports.githubUserLogin = async (event, context) => {
   catch (exception) {
     responseHeaders = responseHeaders ? responseHeaders : await authenticate.getResponseHeaders();
     responseStatusCode = 500;
-    responseBody = JSON.stringify({ error: exception })
+    responseBody = JSON.stringify({error: exception.message, stack: exception.stack});
   }
 
   return {
@@ -127,7 +127,7 @@ exports.getUserData = async (event, context) => {
   catch (exception) {
     responseHeaders = responseHeaders ? responseHeaders : await authenticate.getResponseHeaders();
     responseStatusCode = 500;
-    responseBody = JSON.stringify({ error: exception })
+    responseBody = JSON.stringify({error: exception.message, stack: exception.stack});
   }
 
   return {
@@ -185,7 +185,7 @@ exports.getSignedUrlForStorage = async (event, context) => {
   catch (exception) {
     responseHeaders = responseHeaders ? responseHeaders : await authenticate.getResponseHeaders();
     responseStatusCode = 500;
-    responseBody = JSON.stringify({ error: exception })
+    responseBody = JSON.stringify({error: exception.message, stack: exception.stack});
   }
 
   return {
@@ -249,7 +249,7 @@ exports.getImageWithClarifaiIngredients = async (event, context) => {
   catch (exception) {
     responseHeaders = responseHeaders ? responseHeaders : await authenticate.getResponseHeaders();
     responseStatusCode = 500;
-    responseBody = JSON.stringify({ error: exception })
+    responseBody = JSON.stringify({error: exception.message, stack: exception.stack});
   }
 
   return {
@@ -296,8 +296,8 @@ exports.deleteFileFromStorage = async (event, context) => {
           responseBody = deleteFileData.error.message;
         }
         else {
-          responseStatusCode = 200;
-          responseBody = deleteFileData.message;
+          responseStatusCode = deleteFileData.status.code;
+          responseBody = deleteFileData.status.message;
         }
       }
     }
@@ -305,7 +305,7 @@ exports.deleteFileFromStorage = async (event, context) => {
   catch (exception) {
     responseHeaders = await authenticate.getResponseHeaders();
     responseStatusCode = 500;
-    responseBody = JSON.stringify({ error: exception })
+    responseBody = JSON.stringify({error: exception.message, stack: exception.stack});
   }
 
   return {

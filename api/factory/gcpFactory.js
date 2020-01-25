@@ -92,7 +92,10 @@ const factory = {
 				}
 			}
 			else {
-				status = fileStatus;
+				status = {
+					code: fileStatus.statusCode,
+					message: fileStatus.statusMessage
+				};
 			}
 		}
 		catch(exception) {
