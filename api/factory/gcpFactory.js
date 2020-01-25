@@ -103,6 +103,24 @@ const factory = {
 		}
 
 		return {status, error};
+	},
+	/**
+	 * @description check if the file name matches the user's file list
+	 * @return boolean
+	 */
+	authenticateValidFileNameRequest: (userData, requestedfileName) => {
+		const _files = userData.filesList;
+		let validFileName;
+		for (let i = 0; i < _files.length; ++i) {
+			const fileName = _files[i].name;
+			if (fileName.indexOf(`_${userData.id}`) > -1 && requestedfileName === fileName) {
+				validFileName = fileName;
+				break;
+			}
+		}
+
+		// return boolean value
+		return !!validFileName;
 	}
 }
 
@@ -142,41 +160,28 @@ const gcpFactory = {
 	 * @description generate signed url for the uploaded file by its user
 	 * @returns {url, error}
 	 */
-	getSignedUrlForFile: async (userId, requestedfileName) => {
+	getSignedUrlForFile: async (userData, requestedfileName) => {
 		let error, url;
-
-		let allFilesFromBucket = await factory.getFilesFromBucket();
-		if(allFilesFromBucket.error) {
-			error = allFilesFromBucket.error;
+		
+		if (!factory.authenticateValidFileNameRequest(userData, requestedfileName)) {
+			error = {
+				statusCode: 400,
+				message: "Invalid File Name",
+			}
 		}
 		else {
-			let _files = allFilesFromBucket.files;
-			let validFileName;
-			for(let i = 0; i < _files.length; ++i) {
-				if(_files[i].name.indexOf(`_${userId}`) > -1 && requestedfileName === _files[i].name) {
-					validFileName = _files[i].name;
-				}
-			}
-			if(!validFileName) {
-				error = {
-					statusCode: 400,
-					message: "Invalid File Name",
-				}
+			const gcpOptions = {
+				version: 'v4',
+				action: "read",
+				expires: Date.now() + 8 * 60 * 60 * 1000, // 8 hours
+			};
+
+			let getSignedUrl = await factory.getSignedUrl(gcpOptions, requestedfileName);
+			if (getSignedUrl.error) {
+				error = getSignedUrl.error;
 			}
 			else {
-				const gcpOptions = {
-					version: 'v4',
-					action: "read",
-					expires: Date.now() + 8 * 60 * 60 * 1000, // 8 hours
-				};
-		
-				let getSignedUrl = await factory.getSignedUrl(gcpOptions, validFileName);
-				if(getSignedUrl.error) {
-					error = getSignedUrl.error;
-				}
-				else {
-					url = getSignedUrl.url;
-				}
+				url = getSignedUrl.url;
 			}
 		}
 
@@ -197,9 +202,8 @@ const gcpFactory = {
 			let filteredFiles = [];
 			let _files = allFilesFromBucket.files;
 			for(let i = 0; i < _files.length; ++i ) {
-				if(_files[i].name.indexOf(`_${userId}`) > -1) {
-					const fileName = _files[i].name;
-
+				const fileName = _files[i].name;
+				if(fileName.indexOf(`_${userId}`) > -1) {
 					const gcpOptions = {
 						version: 'v4',
 						action: "read",
@@ -214,7 +218,7 @@ const gcpFactory = {
 					
 					let url = getSignedUrl.url;
 
-					filteredFiles.push({fileName, url});
+					filteredFiles.push({name: fileName, url});
 				}
 					
 			}
@@ -227,15 +231,24 @@ const gcpFactory = {
 	 * @description delete the requested file from the storage and return status
 	 * @return {status, error}
 	 */
-	deleteFileFromBucket: async (userId, requestedfileName) => {
+	deleteFileFromBucket: async (userData, requestedfileName) => {
 		let status, error;
 
-		let fileStatus = await factory.deleteFileFromBucket(requestedfileName);
-		if(fileStatus.error) {
-			error = fileStatus.error;
+		if (!factory.authenticateValidFileNameRequest(userData, requestedfileName)) {
+			error = {
+				statusCode: 400,
+				message: "Invalid File Name",
+			}
 		}
 		else {
-			status = fileStatus.status;
+			let fileStatus = await factory.deleteFileFromBucket(requestedfileName);
+		
+			if (fileStatus.error) {
+				error = fileStatus.error;
+			}
+			else {
+				status = fileStatus.status;
+			}
 		}
 
 		return { status, error };

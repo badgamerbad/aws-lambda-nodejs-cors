@@ -112,8 +112,7 @@ const authenticate = {
 	 * @returns {data}
 	 */
 	getDecodedJwt: async jwtFromReq => {
-		const decodedJwt = jwtOperations.decrypt(jwtFromReq);
-		return JSON.parse(decodedJwt);
+		return jwtOperations.decrypt(jwtFromReq);
 	}
 }
 

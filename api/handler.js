@@ -62,7 +62,7 @@ exports.githubUserLogin = async (event, context) => {
     }
   }
   catch (exception) {
-    responseHeaders = await authenticate.getResponseHeaders();
+    responseHeaders = responseHeaders ? responseHeaders : await authenticate.getResponseHeaders();
     responseStatusCode = 500;
     responseBody = JSON.stringify({ error: exception })
   }
@@ -125,7 +125,7 @@ exports.getUserData = async (event, context) => {
     }
   }
   catch (exception) {
-    responseHeaders = await authenticate.getResponseHeaders();
+    responseHeaders = responseHeaders ? responseHeaders : await authenticate.getResponseHeaders();
     responseStatusCode = 500;
     responseBody = JSON.stringify({ error: exception })
   }
@@ -183,7 +183,7 @@ exports.getSignedUrlForStorage = async (event, context) => {
     }
   }
   catch (exception) {
-    responseHeaders = await authenticate.getResponseHeaders();
+    responseHeaders = responseHeaders ? responseHeaders : await authenticate.getResponseHeaders();
     responseStatusCode = 500;
     responseBody = JSON.stringify({ error: exception })
   }
@@ -223,35 +223,31 @@ exports.getImageWithClarifaiIngredients = async (event, context) => {
         responseBody = decryptCsrfToken.error.message;
       }
       else {
+        let decodedJwtUserData = await authenticate.getDecodedJwt(requestBody.body.jwt);
+
         responseHeaders = await authenticate.getResponseHeaders(decryptCsrfToken.accessData.accessToken, decryptCsrfToken.accessData.userId);
-        let getUser = await githubFactory.getUser(decryptCsrfToken.accessData.accessToken);
-        if (getUser.error) {
-          responseStatusCode = getUser.error.statusCode;
-          responseBody = getUser.error.message;
+
+        let getSignedUrlData = await gcpFactory.getSignedUrlForFile(decodedJwtUserData, requestBody.body.fileName);
+        if (getSignedUrlData.error) {
+          responseStatusCode = getSignedUrlData.error.statusCode;
+          responseBody = getSignedUrlData.error.message;
         }
         else {
-          let getSignedUrlData = await gcpFactory.getSignedUrlForFile(getUser.userData.id, requestBody.body.fileName);
-          if (getSignedUrlData.error) {
-            responseStatusCode = getSignedUrlData.error.statusCode;
-            responseBody = getSignedUrlData.error.message;
+          let clarifaiData = await clarifaiFactory.getIngredients(getSignedUrlData.url);
+          if (clarifaiData.error) {
+            responseStatusCode = clarifaiData.error.statusCode;
+            responseBody = clarifaiData.error.message;
           }
           else {
-            let clarifaiData = await clarifaiFactory.getIngredients(getSignedUrlData.url);
-            if (clarifaiData.error) {
-              responseStatusCode = clarifaiData.error.statusCode;
-              responseBody = clarifaiData.error.message;
-            }
-            else {
-              responseStatusCode = 200;
-              responseBody = JSON.stringify({ url: getSignedUrlData.url, ingredients: clarifaiData.ingredients });
-            }
+            responseStatusCode = 200;
+            responseBody = JSON.stringify({ url: getSignedUrlData.url, ingredients: clarifaiData.ingredients });
           }
         }
       }
     }
   }
   catch (exception) {
-    responseHeaders = await authenticate.getResponseHeaders();
+    responseHeaders = responseHeaders ? responseHeaders : await authenticate.getResponseHeaders();
     responseStatusCode = 500;
     responseBody = JSON.stringify({ error: exception })
   }
@@ -290,22 +286,18 @@ exports.deleteFileFromStorage = async (event, context) => {
         responseBody = decryptCsrfToken.error.message;
       }
       else {
+        let decodedJwtUserData = await authenticate.getDecodedJwt(requestBody.body.jwt);
+
         responseHeaders = await authenticate.getResponseHeaders(decryptCsrfToken.accessData.accessToken, decryptCsrfToken.accessData.userId);
-        let getUser = await githubFactory.getUser(decryptCsrfToken.accessData.accessToken);
-        if (getUser.error) {
-          responseStatusCode = getUser.error.statusCode;
-          responseBody = getUser.error.message;
+        
+        let deleteFileData = await gcpFactory.deleteFileFromBucket(decodedJwtUserData, requestBody.body.fileName);
+        if (deleteFileData.error) {
+          responseStatusCode = deleteFileData.error.statusCode;
+          responseBody = deleteFileData.error.message;
         }
         else {
-          let deleteFileData = await gcpFactory.deleteFileFromBucket(getUser.userData.id, requestBody.body.fileName);
-          if (deleteFileData.error) {
-            responseStatusCode = deleteFileData.error.statusCode;
-            responseBody = deleteFileData.error.message;
-          }
-          else {
-            responseStatusCode = 200;
-            responseBody = deleteFileData.message;
-          }
+          responseStatusCode = 200;
+          responseBody = deleteFileData.message;
         }
       }
     }

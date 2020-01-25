@@ -15,13 +15,3 @@ const jwtOperation = {
 }
 
 module.exports = jwtOperation;
-
-// const testJwtOperation = async () => {
-//     let data = {foo: "bar"}
-//     let token = jwtOperation.encrypt(data);
-//     let dataAfter = jwtOperation.decrypt(token);
-
-//     let foo = "bar";
-// } 
-
-// testJwtOperation();
