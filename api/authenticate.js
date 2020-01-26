@@ -67,35 +67,41 @@ const authenticate = {
 	},
 	/**
 	 * @description generate the headers for the response
-	 * @argument {accessToken, userId}
+	 * @argument {accessToken, userId, logoutUser: boolean}
 	 * @returns {
 	 *   "Access-Control-Allow-Origin"
 	 *   "Access-Control-Allow-Credentials"
 	 *   "Set-Cookie"?
 	 * }
 	 */
-	getResponseHeaders: async (accessToken, userId) => {
+	getResponseHeaders: async (accessToken, userId, logoutUser) => {
 		// CORS headers
 		let responseHeaders = {
 			"Access-Control-Allow-Origin": allowedOrigin[0],
 			"Access-Control-Allow-Credentials": true,
 		};
 
-		if (accessToken && userId) {
-			// encrypt the github access token, userId and timestamp (prevent replay attack)
-			// and send it as a csrf token
-			// which acts like a stateless csrf token (Encryption based Token Pattern)
-			let now = new Date();
-
-			// making the CSRF token valid for hour(s) in env CSRF_MAX_AGE_IN_HOURS
-			const timeStamp = now.setHours(now.getHours() + parseInt(process.env.CSRF_MAX_AGE_IN_HOURS));
-
-			const csrfToken = await cryptOperations.encrypt(JSON.stringify({ accessToken, userId, timeStamp }));
-
-			now = new Date();
-			now.setHours(now.getHours() + 1);
-			const cookieExpires = now.toUTCString();
-			responseHeaders["Set-Cookie"] = `csrf_token=${csrfToken}; Max-Age=86400; Path=/; Expires=${cookieExpires}; HttpOnly`;
+		if (logoutUser) {
+			responseHeaders["Set-Cookie"] = `csrf_token=none; Max-Age=86400; Path=/; HttpOnly`;
+		}
+		// in case the logoutUser is undefined or false
+		else {
+			if (accessToken && userId) {
+				// encrypt the github access token, userId and timestamp (prevent replay attack)
+				// and send it as a csrf token
+				// which acts like a stateless csrf token (Encryption based Token Pattern)
+				let now = new Date();
+	
+				// making the CSRF token valid for hour(s) in env CSRF_MAX_AGE_IN_HOURS
+				const timeStamp = now.setHours(now.getHours() + parseInt(process.env.CSRF_MAX_AGE_IN_HOURS));
+	
+				const csrfToken = await cryptOperations.encrypt(JSON.stringify({ accessToken, userId, timeStamp }));
+	
+				now = new Date();
+				now.setHours(now.getHours() + 1);
+				const cookieExpires = now.toUTCString();
+				responseHeaders["Set-Cookie"] = `csrf_token=${csrfToken}; Max-Age=86400; Path=/; Expires=${cookieExpires}; HttpOnly`;
+			}
 		}
 
 		return responseHeaders;

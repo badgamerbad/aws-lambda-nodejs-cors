@@ -303,7 +303,54 @@ exports.deleteFileFromStorage = async (event, context) => {
     }
   }
   catch (exception) {
-    responseHeaders = await authenticate.getResponseHeaders();
+    responseHeaders = responseHeaders ? responseHeaders : await authenticate.getResponseHeaders();
+    responseStatusCode = 500;
+    responseBody = JSON.stringify({error: exception.message, stack: exception.stack});
+  }
+
+  return {
+    "statusCode": responseStatusCode,
+    "headers": responseHeaders,
+    "body": responseBody,
+    "isBase64Encoded": false
+  };
+};
+/**
+ * @description delete the session and log out user
+ * @argument {header.csrf_token}
+ * @returns {userStatus}
+ */
+exports.githubUserSignOut = async (event, context) => {
+  let responseStatusCode = 500, responseBody, responseHeaders;
+
+  try {
+    const requestBody = await authenticate.normalizeRequest(event);
+
+    // check if error while forming the request body
+    if (requestBody.error) {
+      responseStatusCode = requestBody.error.statusCode;
+      responseHeaders = await authenticate.getResponseHeaders();
+      responseBody = JSON.stringify(requestBody);
+    }
+    // decrypt the csrf token and retrieve access token
+    // and delete the session and log out user
+    else {
+      let decryptCsrfToken = await authenticate.getAccessDataFromCsrfToken(requestBody.headers);
+      if (decryptCsrfToken.error) {
+        responseStatusCode = decryptCsrfToken.error.statusCode;
+        responseHeaders = await authenticate.getResponseHeaders();
+        responseBody = decryptCsrfToken.error.message;
+      }
+      else {
+        // authenticate.getResponseHeaders arguments are {accessToken, userId, logoutUser: boolean}
+        responseHeaders = await authenticate.getResponseHeaders(false, false, true);
+        responseStatusCode = 200;
+        responseBody = "successfully logged out the user";
+      }
+    }
+  }
+  catch (exception) {
+    responseHeaders = responseHeaders ? responseHeaders : await authenticate.getResponseHeaders();
     responseStatusCode = 500;
     responseBody = JSON.stringify({error: exception.message, stack: exception.stack});
   }

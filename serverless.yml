@@ -63,3 +63,12 @@ functions:
           path: file/deleteFileFromStorage
           method: post
           cors: true
+  githubUserSignOut:
+    handler: api/handler.githubUserSignOut
+    layers:
+      - {Ref: PublicModulesLambdaLayer}
+    events:
+      - http:
+          path: user/logout
+          method: post
+          cors: true
