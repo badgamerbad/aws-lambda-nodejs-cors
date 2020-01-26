@@ -60,6 +60,6 @@ functions:
       - {Ref: PublicModulesLambdaLayer}
     events:
       - http:
-          path: file/:fileName
-          method: get
+          path: file/deleteFileFromStorage
+          method: post
           cors: true
