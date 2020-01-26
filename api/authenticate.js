@@ -38,21 +38,29 @@ const authenticate = {
 		const cookie = headers["Cookie"];
 		if (cookie && cookie.indexOf("csrf_token") > -1) {
 			const csrfToken = cookie.replace("csrf_token=", "");
-			const decryptedValue = await cryptOperations.decrypt(csrfToken);
-			if (typeof decryptedValue === "string") {
-				accessData = JSON.parse(decryptedValue);
-				let now = new Date();
-				if(!accessData.timeStamp || accessData.timeStamp < now.getTime()) {
+			if(csrfToken.indexOf("none") === -1) {
+				const decryptedValue = await cryptOperations.decrypt(csrfToken);
+				if (typeof decryptedValue === "string") {
+					accessData = JSON.parse(decryptedValue);
+					let now = new Date();
+					if (!accessData.timeStamp || accessData.timeStamp < now.getTime()) {
+						error = {
+							statusCode: 403,
+							message: "The CSRF token is expired or invalid",
+						}
+					}
+				}
+				else {
 					error = {
 						statusCode: 403,
-						message: "The CSRF token is expired or invalid",
+						message: decryptedValue.message,
 					}
 				}
 			}
 			else {
 				error = {
-					statusCode: 403,
-					message: decryptedValue.message,
+					statusCode: 401,
+					message: "The user is not logged in",
 				}
 			}
 		}
