@@ -52,5 +52,23 @@ functions:
     events:
       - http:
           path: file/signedUrlAndIngredients
-          method: get
+          method: post
+          cors: true
+  deleteFileFromStorage:
+    handler: api/handler.deleteFileFromStorage
+    layers:
+      - {Ref: PublicModulesLambdaLayer}
+    events:
+      - http:
+          path: file/deleteFileFromStorage
+          method: post
+          cors: true
+  githubUserSignOut:
+    handler: api/handler.githubUserSignOut
+    layers:
+      - {Ref: PublicModulesLambdaLayer}
+    events:
+      - http:
+          path: user/logout
+          method: post
           cors: true

@@ -1,0 +1,8 @@
+{
+    "headers": {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Origin": "http://localhost:8000",
+        "Cookie": "csrf_token=AjxeSlFXhQUKney/vNRgid9xBl+L2OfhzEPwNEjbCJ7cixIw+ryiQhra6j6G1DIn8dxROFnG1wD1RQO4OOMVlJf9W/Ea4MQ9qZRi9KR2lha689kS5DWoKjwYkYcR4iz0NDBl4z4s/Wni+l4mqlrxCdVXhk3T8Q5bFUlJCNktzctYkOnCYQe7RFicu5nLFUkbyFOAFZdi/dIGmDbFgqu09LaxOBeGxF4JZTeO69+wCexhQTA9le6rQbewOqvF9SoimAxtLEQ0"
+    }
+}
