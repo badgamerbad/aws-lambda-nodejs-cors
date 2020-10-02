@@ -90,7 +90,7 @@ const authenticate = {
 		};
 
 		if (logoutUser) {
-			responseHeaders["Set-Cookie"] = `csrf_token=none; Max-Age=86400; Path=/; HttpOnly`;
+			responseHeaders["Set-Cookie"] = `csrf_token=none; Max-Age=86400; Path=/; HttpOnly; Secure; SameSite=None`;
 		}
 		// in case the logoutUser is undefined or false
 		else {
@@ -108,7 +108,7 @@ const authenticate = {
 				now = new Date();
 				now.setHours(now.getHours() + 1);
 				const cookieExpires = now.toUTCString();
-				responseHeaders["Set-Cookie"] = `csrf_token=${csrfToken}; Max-Age=86400; Path=/; Expires=${cookieExpires}; HttpOnly`;
+				responseHeaders["Set-Cookie"] = `csrf_token=${csrfToken}; Max-Age=86400; Path=/; Expires=${cookieExpires}; HttpOnly; Secure; SameSite=None`;
 			}
 		}
 
