@@ -4,7 +4,6 @@ This serves the api for the ingredofit app for authorization and safekeeping of 
 
 # GCP
 
-
 ## Install `gsutil` and Login into project in CLI
 [here](https://cloud.google.com/storage/docs/gsutil_install)
 
