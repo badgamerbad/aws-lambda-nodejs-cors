@@ -2,9 +2,9 @@ service: ingredofit
 provider:
   name: aws
   runtime: nodejs10.x
-  stage: dev
+  stage: dev  # values (uat, dev)
   environment:
-    NODE_PATH: "./:/opt/node_modules"
+    NODE_PATH: "./:/opt/node_modules" # rest of the env from .env file
 package:
   exclude:
     - .vscode/**
